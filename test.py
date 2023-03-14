@@ -43,3 +43,37 @@ with open (r"\\.\D:", "rb") as fp:
         print('First MFT Cluster: ' + str(MFTstartCluster))
         print('First MFT Backup Cluster: ' + str(MFTBstartCluster))
         print('Bytes per MFT Entry: ' + str(bytesPerMFTEntry))
+
+        print()
+
+        MFTstartByte = MFTstartCluster * sectorsPerCluster * bytesPerSector
+        fp.seek(MFTstartByte, 0)
+        fp.read(1)
+
+        startMFTEntry = MFTstartByte
+        i = 1
+        while i < 6:
+            print('File ' + str(i))
+
+            nextMFTEntry = startMFTEntry + bytesPerMFTEntry
+
+            fp.seek(startMFTEntry + 0x14, 0)
+            offsetFirstAttribute = int.from_bytes(fp.read(2), 'little')
+
+            startAttribute = startMFTEntry + offsetFirstAttribute
+
+            while True:
+                fp.seek(startAttribute, 0)
+                typeAttribute = hex(int.from_bytes(fp.read(4), 'little'))
+
+                if (typeAttribute == "0xffffffff"): break
+
+                print(typeAttribute)
+
+                fp.seek(startAttribute + 0x04, 0)
+                sizeAttribute = int.from_bytes(fp.read(4), 'little')
+
+                startAttribute += sizeAttribute
+
+            startMFTEntry += bytesPerMFTEntry
+            i += 1
