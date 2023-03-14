@@ -8,6 +8,8 @@
 #         byte = fr.read(1)
 #         count += 1
 
+from datetime import datetime, timedelta
+
 def twos_comp(val, bits):
     if (val & (1 << (bits - 1))) != 0:
         val = val - (1 << bits)
@@ -66,9 +68,29 @@ with open (r"\\.\D:", "rb") as fp:
                 fp.seek(startAttribute, 0)
                 typeAttribute = hex(int.from_bytes(fp.read(4), 'little'))
 
-                if (typeAttribute == "0xffffffff"): break
+                if typeAttribute == "0xffffffff": break
 
-                print(typeAttribute)
+                fp.seek(startAttribute + 0x10, 0)
+                sizeContent = int.from_bytes(fp.read(4), 'little')
+
+                fp.seek(startAttribute + 0x14, 0)
+                offsetContent = int.from_bytes(fp.read(2), 'little')
+
+                startContent = startAttribute + offsetContent
+
+                # $STANDARD_INFORMATION
+                if (typeAttribute == "0x10"):
+                    fp.seek(startContent, 0)
+                    timeCreatedNS = int.from_bytes(fp.read(8), 'little')
+                    organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS/1e7)
+                    dateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
+                    timeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
+                    print(dateCreated)
+                    print(timeCreated)
+
+                # $FILE_NAME
+                elif (typeAttribute == "0x30"):
+                    print()
 
                 fp.seek(startAttribute + 0x04, 0)
                 sizeAttribute = int.from_bytes(fp.read(4), 'little')
