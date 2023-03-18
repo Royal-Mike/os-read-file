@@ -1,6 +1,6 @@
 # PHYSICALDRIVE0 = Disk
 # C:, D: = Partition
-# with open (r"\\.\C:", "rb") as fr:
+# with open (r"\\.\E:", "rb") as fr:
 #     count = 0
 #     byte = fr.read(1)
 #     while count < 512:
@@ -28,7 +28,7 @@ with open(r"\\.\E:", "rb") as fp:
         fp.seek(0x10, 0)
         numberOfFATs = int.from_bytes(fp.read(1), 'little')
 
-        fp.seek(0x36, 0)
+        fp.seek(0x52, 0)
 
         numberOfEntriesofRDET = 0 
         volumeSize = 0 
@@ -36,21 +36,23 @@ with open(r"\\.\E:", "rb") as fp:
 
         FATtype = fp.read(5).decode("ascii")
 
-        if (FATtype == "FAT16" or FATtype == "FAT12"):
+        if (FATtype == "FAT32"):
             fp.seek(0x11, 0)
             numberOfEntriesofRDET = int.from_bytes(fp.read(2), 'little')
             
-            fp.seek(0x13, 0)
+            fp.seek(0x20, 0)
+            volumeSize = int.from_bytes(fp.read(4), 'little')
 
-            volumeSize = int.from_bytes(fp.read(2), 'little')
+            fp.seek(0x24, 0)
+            numberOfSectorsofFAT = int.from_bytes(fp.read(4), 'little')
 
-            if (volumeSize == 0):
-                fp.seek(0x20, 0)
-                volumeSize = int.from_bytes(fp.read(4), 'little')
-
+            fp.seek(0x2C, 0)
+            RDETIndex = int.from_bytes(fp.read(4), 'little')
             print(volumeSize)
+            print(numberOfSectorsofFAT)
+            print(RDETIndex)
         else:
-            print('False')
+            print("Error! The disk partition is not FAT32")
     #     fp.seek(0x18, 0)
     #     sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
     #     fp.seek(0x1A, 0)
