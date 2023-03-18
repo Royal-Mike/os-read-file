@@ -37,9 +37,6 @@ with open(r"\\.\E:", "rb") as fp:
         FATtype = fp.read(5).decode("ascii")
 
         if (FATtype == "FAT32"):
-            fp.seek(0x11, 0)
-            numberOfEntriesofRDET = int.from_bytes(fp.read(2), 'little')
-            
             fp.seek(0x20, 0)
             volumeSize = int.from_bytes(fp.read(4), 'little')
 
@@ -51,11 +48,20 @@ with open(r"\\.\E:", "rb") as fp:
 
         else:
             print("Error! The disk partition is not FAT32")
-
-        RDETLocation = bytesPerSector * sectorsPerCluster * RDETIndex
-
+        dataStartIndex = 2
+        RDETStartSec_inDT = bytesPerSector*sectorsPerCluster*RDETIndex
+        RDETLocation = (volumeSize - (sectorsBeforeFAT + numberOfFATs*numberOfSectorsofFAT))*bytesPerSector  + RDETStartSec_inDT
+        
         fp.seek(RDETLocation, 0)
         print(fp.read(8).decode("utf-16"))
+        # print("Bytes per Sector: " + str(bytesPerSector))
+        # print("Sector per Cluster: " + str(sectorsPerCluster))
+        # print("Sectors before FAT: " + str(sectorsBeforeFAT))
+        # print("Number of Sectors of FAT: " + str(numberOfSectorsofFAT))
+        # print("Size of Volume: " + str(volumeSize))
+        # print("Number of FAT: " + str(numberOfFATs))
+        # print("RDET's index cluster: " + str(RDETIndex))
+        # print("RDET location: " + str(RDETLocation))
     #     fp.seek(0x18, 0)
     #     sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
     #     fp.seek(0x1A, 0)
