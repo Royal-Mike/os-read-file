@@ -15,7 +15,7 @@ def twos_comp(val, bits):
         val = val - (1 << bits)
     return val
 
-with open(r"\\.\D:", "rb") as fp:
+with open(r"\\.\C:", "rb") as fp:
     fp.read(3)
     type = fp.read(4).decode("ascii")
     if (type == "NTFS"):
@@ -74,6 +74,7 @@ with open(r"\\.\D:", "rb") as fp:
             fileAttributes = []
             fileDateCreated = ''
             fileTimeCreated = ''
+            fileSize = 0
 
             if (sizeMFTEntryUsed > 0):
                 while True:
@@ -118,6 +119,10 @@ with open(r"\\.\D:", "rb") as fp:
                         fp.seek(startContent + 0x42, 0)
                         fileName = fp.read(lengthFileName * 2).replace(b'\x00', b'').decode('utf-8')
 
+                    # $DATA
+                    elif (typeAttribute == "0x80"):
+                        fileSize = sizeContent
+
                     fp.seek(startAttribute + 0x04, 0)
                     sizeAttribute = int.from_bytes(fp.read(4), 'little')
 
@@ -126,11 +131,13 @@ with open(r"\\.\D:", "rb") as fp:
             print('Name: ' + fileName)
 
             if not fileAttributes: print('Attributes: None')
-            else: print('Attributes: ' + ', '.join(fileAttributes))
+            else:
+                setAttributes = [*set(fileAttributes)]
+                print('Attributes: ' + ', '.join(setAttributes))
 
             print('Date created: ' + str(fileDateCreated))
             print('Time created: ' + str(fileTimeCreated))
-            print('Size: ' + str(sizeMFTEntryUsed) + 'B')
+            print('Size: ' + str(fileSize) + 'B')
             print()
 
             startMFTEntry += bytesPerMFTEntry
