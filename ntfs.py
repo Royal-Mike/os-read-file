@@ -15,7 +15,7 @@ def twos_comp(val, bits):
         val = val - (1 << bits)
     return val
 
-with open(r"\\.\C:", "rb") as fp:
+with open(r"\\.\D:", "rb") as fp:
     fp.read(3)
     type = fp.read(4).decode("ascii")
     if (type == "NTFS"):
@@ -54,7 +54,7 @@ with open(r"\\.\C:", "rb") as fp:
 
         startMFTEntry = MFTstartByte
         i = 1
-        while i < 20:
+        while i < 100:
             print('File ' + str(i))
 
             nextMFTEntry = startMFTEntry + bytesPerMFTEntry
@@ -67,9 +67,13 @@ with open(r"\\.\C:", "rb") as fp:
 
             fp.seek(startMFTEntry + 0x18, 0)
             sizeMFTEntryUsed = int.from_bytes(fp.read(4), 'little')
-            print('Size: ' + str(sizeMFTEntryUsed) + 'B')
 
             startAttribute = startMFTEntry + offsetFirstAttribute
+
+            fileName = ''
+            fileAttributes = []
+            fileDateCreated = ''
+            fileTimeCreated = ''
 
             if (sizeMFTEntryUsed > 0):
                 while True:
@@ -91,26 +95,42 @@ with open(r"\\.\C:", "rb") as fp:
                         fp.seek(startContent, 0)
                         timeCreatedNS = int.from_bytes(fp.read(8), 'little')
                         organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS/1e7)
-                        dateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
-                        timeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
-                        print('Date created: ' + str(dateCreated))
-                        print('Time created: ' + str(timeCreated))
+                        fileDateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
+                        fileTimeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
 
                     # $FILE_NAME
                     elif (typeAttribute == "0x30"):
                         fp.seek(startContent + 0x38, 0)
-                        fileAttribute = int.from_bytes(fp.read(4), 'little')
+                        stringAttribute = bin(int.from_bytes(fp.read(4), 'little'))[2:]
+
+                        bitPosition = 0
+                        for bit in reversed(stringAttribute):
+                            if (bit == '1'):
+                                if (bitPosition == 0): fileAttributes.append('Read-Only')
+                                elif (bitPosition == 1): fileAttributes.append('Hidden')
+                                elif (bitPosition == 2): fileAttributes.append('System')
+                                elif (bitPosition == 5): fileAttributes.append('Archive')
+                                elif (bitPosition == 28): fileAttributes.append('Directory')
+                            bitPosition += 1
+
                         fp.seek(startContent + 0x40, 0)
                         lengthFileName = int.from_bytes(fp.read(1), 'little')
                         fp.seek(startContent + 0x42, 0)
                         fileName = fp.read(lengthFileName * 2).replace(b'\x00', b'').decode('utf-8')
-                        print('Name: ' + fileName)
 
                     fp.seek(startAttribute + 0x04, 0)
                     sizeAttribute = int.from_bytes(fp.read(4), 'little')
 
                     startAttribute += sizeAttribute
 
+            print('Name: ' + fileName)
+
+            if not fileAttributes: print('Attributes: None')
+            else: print('Attributes: ' + ', '.join(fileAttributes))
+
+            print('Date created: ' + str(fileDateCreated))
+            print('Time created: ' + str(fileTimeCreated))
+            print('Size: ' + str(sizeMFTEntryUsed) + 'B')
             print()
 
             startMFTEntry += bytesPerMFTEntry
