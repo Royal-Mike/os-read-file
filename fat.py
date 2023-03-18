@@ -48,11 +48,14 @@ with open(r"\\.\E:", "rb") as fp:
 
             fp.seek(0x2C, 0)
             RDETIndex = int.from_bytes(fp.read(4), 'little')
-            print(volumeSize)
-            print(numberOfSectorsofFAT)
-            print(RDETIndex)
+
         else:
             print("Error! The disk partition is not FAT32")
+
+        RDETLocation = bytesPerSector * sectorsPerCluster * RDETIndex
+
+        fp.seek(RDETLocation, 0)
+        print(fp.read(8).decode("utf-16"))
     #     fp.seek(0x18, 0)
     #     sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
     #     fp.seek(0x1A, 0)
