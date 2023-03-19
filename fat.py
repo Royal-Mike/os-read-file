@@ -70,9 +70,15 @@ with open(r"\\.\E:", "rb") as fp:
         # print(fp.read(6))
         fp.seek(RDETLocation, 0)
         print(fp.read(8).decode("utf-8"))
+        for i in range(5):
+            fp.seek(RDETLocation + 32*(i + 4), 0)
+            fp.read(1)
+            print(fp.read(8).decode("utf-8"))
 
-        # fp.seek(RDETLocation + 0x08, 0)
-        # print(fp.read(3).decode("utf-8"))
+        
+        #print(fp.read(8).decode("utf-8"))
+       # fp.seek(RDETLocation + 424)
+        #print(fp.read(3).decode("utf-8"))
 
         # fp.seek(RDETLocation + 0x0D, 0)
         # time = int.from_bytes(fp.read(3), 'little')
@@ -84,7 +90,7 @@ with open(r"\\.\E:", "rb") as fp:
 
         # fp.seek(RDETLocation + 0x10, 0)
         # print(int.from_bytes(fp.read(2),'little'))
-        
+
         # print("Bytes per Sector: " + str(bytesPerSector))
         # print("Sector per Cluster: " + str(sectorsPerCluster))
         # print("Sectors before FAT: " + str(sectorsBeforeFAT))
