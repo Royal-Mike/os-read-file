@@ -2,12 +2,26 @@
 # C:, D: = Partition
 # with open (r"\\.\E:", "rb") as fr:
 #     count = 0
+#     line_down = 0
 #     byte = fr.read(1)
-#     while count < 512:
+#     print(0, end ='     ')
+#     while count < 9216:
 #         print(byte.hex(), end=' ')
+#         if ((line_down + 1) % 16 == 0):
+#             print()
+#             if (line_down + 1 < 9216):
+#                 if ((line_down + 1) // 16 < 10):
+#                     print((line_down + 1) // 16, end = '     ')
+#                 elif ((line_down + 1) // 16 < 100):
+#                     print((line_down + 1) // 16, end = '    ')
+#                 elif ((line_down + 1) // 16 < 1000):
+#                     print((line_down + 1) // 16, end = '   ')
+#         elif ((line_down + 1) % 8 == 0):
+#                 print(" ", end='')
+#         line_down+= 1
 #         byte = fr.read(1)
 #         count += 1
-
+#197, 384
 from datetime import datetime, timedelta
 
 def twos_comp(val, bits):
@@ -32,7 +46,7 @@ with open(r"\\.\E:", "rb") as fp:
 
         numberOfEntriesofRDET = 0 
         volumeSize = 0 
-        numberOfSectorsofFAT = 0
+        sectorsPerFAT = 0
 
         FATtype = fp.read(5).decode("ascii")
 
@@ -41,23 +55,40 @@ with open(r"\\.\E:", "rb") as fp:
             volumeSize = int.from_bytes(fp.read(4), 'little')
 
             fp.seek(0x24, 0)
-            numberOfSectorsofFAT = int.from_bytes(fp.read(4), 'little')
+            sectorsPerFAT = int.from_bytes(fp.read(4), 'little')
 
             fp.seek(0x2C, 0)
             RDETIndex = int.from_bytes(fp.read(4), 'little')
-
+            
         else:
             print("Error! The disk partition is not FAT32")
-        dataStartIndex = 2
-        RDETStartSec_inDT = bytesPerSector*sectorsPerCluster*RDETIndex
-        RDETLocation = (volumeSize - (sectorsBeforeFAT + numberOfFATs*numberOfSectorsofFAT))*bytesPerSector  + RDETStartSec_inDT
+        # dataStartIndex = 2
+        # RDETStartSec_inDT = bytesPerSector*sectorsPerCluster*RDETIndex
+        RDETLocation = (sectorsBeforeFAT + numberOfFATs*sectorsPerFAT)*bytesPerSector
         
+        # fp.seek(0x3EA, 0)
+        # print(fp.read(6))
         fp.seek(RDETLocation, 0)
-        print(fp.read(8).decode("utf-16"))
+        print(fp.read(8).decode("utf-8"))
+
+        # fp.seek(RDETLocation + 0x08, 0)
+        # print(fp.read(3).decode("utf-8"))
+
+        # fp.seek(RDETLocation + 0x0D, 0)
+        # time = int.from_bytes(fp.read(3), 'little')
+        # hour = time // 3600000
+        # minute = (time - hour * 3600000)//60000
+        # second = (time - hour*3600000 - minute*60000) // 1000
+        # milisecond = time - hour*3600000 - minute*60000 - second*1000
+        # print(str(hour) + ":" + str(minute) + ":" + str(second) + "." + str(milisecond))
+
+        # fp.seek(RDETLocation + 0x10, 0)
+        # print(int.from_bytes(fp.read(2),'little'))
+        
         # print("Bytes per Sector: " + str(bytesPerSector))
         # print("Sector per Cluster: " + str(sectorsPerCluster))
         # print("Sectors before FAT: " + str(sectorsBeforeFAT))
-        # print("Number of Sectors of FAT: " + str(numberOfSectorsofFAT))
+        # print("Number of Sectors of FAT: " + str(sectorsPerFAT))
         # print("Size of Volume: " + str(volumeSize))
         # print("Number of FAT: " + str(numberOfFATs))
         # print("RDET's index cluster: " + str(RDETIndex))
