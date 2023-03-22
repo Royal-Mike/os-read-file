@@ -22,14 +22,25 @@
 #         byte = fr.read(1)
 #         count += 1
 #197, 384
+
+class File:
+    name = ""
+    extension = "."
+    atributes = ""
+    time_created = 0
+    beginning_cluster = 0
+    size = 0
+
+
 from datetime import datetime, timedelta
+
 
 def twos_comp(val, bits):
     if (val & (1 << (bits - 1))) != 0:
         val = val - (1 << bits)
     return val
 
-with open(r"\\.\E:", "rb") as fp:
+with open(r"\\.\F:", "rb") as fp:
     fp.read(3)
     type = fp.read(5).decode("ascii")
     if (type == "MSDOS"):
@@ -68,14 +79,52 @@ with open(r"\\.\E:", "rb") as fp:
         
         # fp.seek(0x3EA, 0)
         # print(fp.read(6))
-        fp.seek(RDETLocation, 0)
-        print(fp.read(8).decode("utf-8"))
-        for i in range(5):
-            fp.seek(RDETLocation + 32*(i + 4), 0)
-            fp.read(1)
-            print(fp.read(8).decode("utf-8"))
-
         
+        file_list = File()
+        file_list = []
+        temp = File()
+        fp.seek(RDETLocation, 0)
+        
+        index = RDETLocation
+        while True:
+            if (fp.read(1) == 0xE5):
+                index += 32
+                continue
+            else:
+                fp.seek(index + 0x0B, 0)
+                check = fp.read(1)
+                if (int.from_bytes(check, 'little') == 15):
+                    name = ""
+                    fp.seek(index + 0x01, 0)
+                    tmp = fp.read(1)
+                    i = 0
+                    while (int.from_bytes(tmp, 'little') != 255 and i < 10):
+                        if (i % 2 ==0): 
+                            name = name + tmp.decode("utf-8")
+                        tmp = fp.read(1)
+                        i += 1
+                    fp.seek(index + 0x0E, 0)
+                    tmp = fp.read(1)
+                    i = 0
+                    while (int.from_bytes(tmp, 'little') != 255 and i < 12):
+                        if (i % 2 == 0):
+                            name = name + tmp.decode("utf-8")
+                        tmp = fp.read(1)
+                        i += 1
+                    fp.seek(index + 0x1C, 0)
+                    tmp = fp.read(1)
+                    i = 0
+                    while (int.from_bytes(tmp, 'little') != 255 and i < 4):
+                        if (i % 2 == 0): 
+                            name = name + tmp.decode("utf-8")
+                        tmp = fp.read(1)
+                        i += 1
+                    index += 32
+                    temp.name = name + temp.name
+                else:
+                    file_list.append(temp)
+                    break
+        print(file_list[0].name)
         #print(fp.read(8).decode("utf-8"))
        # fp.seek(RDETLocation + 424)
         #print(fp.read(3).decode("utf-8"))
