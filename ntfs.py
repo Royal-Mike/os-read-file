@@ -15,7 +15,7 @@ def twos_comp(val, bits):
         val = val - (1 << bits)
     return val
 
-with open(r"\\.\C:", "rb") as fp:
+with open(r"\\.\E:", "rb") as fp:
     fp.read(3)
     type = fp.read(4).decode("ascii")
     if (type == "NTFS"):
@@ -53,10 +53,9 @@ with open(r"\\.\C:", "rb") as fp:
         fp.read(1)
 
         startMFTEntry = MFTstartByte
+        emptyCheck = 0
         i = 1
-        while i < 100:
-            print('File ' + str(i))
-
+        while True:
             nextMFTEntry = startMFTEntry + bytesPerMFTEntry
 
             fp.seek(startMFTEntry, 0)
@@ -95,7 +94,7 @@ with open(r"\\.\C:", "rb") as fp:
                     if (typeAttribute == "0x10"):
                         fp.seek(startContent, 0)
                         timeCreatedNS = int.from_bytes(fp.read(8), 'little')
-                        organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS/1e7)
+                        organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS / 1e7) - timedelta(hours = 5)
                         fileDateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
                         fileTimeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
 
@@ -128,6 +127,7 @@ with open(r"\\.\C:", "rb") as fp:
 
                     startAttribute += sizeAttribute
 
+            print('File ' + str(i))
             print('Name: ' + fileName)
 
             if not fileAttributes: print('Attributes: None')
