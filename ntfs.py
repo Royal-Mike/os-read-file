@@ -54,7 +54,7 @@ with open(r"\\.\E:", "rb") as fp:
 
         startMFTEntry = MFTstartByte
         emptyCheck = 0
-        i = 1
+        i = 0
         while True:
             nextMFTEntry = startMFTEntry + bytesPerMFTEntry
 
@@ -94,7 +94,7 @@ with open(r"\\.\E:", "rb") as fp:
                     if (typeAttribute == "0x10"):
                         fp.seek(startContent, 0)
                         timeCreatedNS = int.from_bytes(fp.read(8), 'little')
-                        organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS / 1e7) - timedelta(hours = 5)
+                        organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS / 1e7) + timedelta(hours = 7)
                         fileDateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
                         fileTimeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
 
@@ -127,6 +127,13 @@ with open(r"\\.\E:", "rb") as fp:
 
                     startAttribute += sizeAttribute
 
+            startMFTEntry += bytesPerMFTEntry
+            i += 1
+
+            if (i < 37): continue
+
+            if (fileDateCreated == ''): break
+
             print('File ' + str(i))
             print('Name: ' + fileName)
 
@@ -139,6 +146,3 @@ with open(r"\\.\E:", "rb") as fp:
             print('Time created: ' + str(fileTimeCreated))
             print('Size: ' + str(fileSize) + 'B')
             print()
-
-            startMFTEntry += bytesPerMFTEntry
-            i += 1
