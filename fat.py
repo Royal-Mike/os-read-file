@@ -1,28 +1,3 @@
-# PHYSICALDRIVE0 = Disk
-# C:, D: = Partition
-# with open (r"\\.\E:", "rb") as fr:
-#     count = 0
-#     line_down = 0
-#     byte = fr.read(1)
-#     print(0, end ='     ')
-#     while count < 9216:
-#         print(byte.hex(), end=' ')
-#         if ((line_down + 1) % 16 == 0):
-#             print()
-#             if (line_down + 1 < 9216):
-#                 if ((line_down + 1) // 16 < 10):
-#                     print((line_down + 1) // 16, end = '     ')
-#                 elif ((line_down + 1) // 16 < 100):
-#                     print((line_down + 1) // 16, end = '    ')
-#                 elif ((line_down + 1) // 16 < 1000):
-#                     print((line_down + 1) // 16, end = '   ')
-#         elif ((line_down + 1) % 8 == 0):
-#                 print(" ", end='')
-#         line_down+= 1
-#         byte = fr.read(1)
-#         count += 1
-#197, 384
-
 class File:
     name = ""
     extension = "."
@@ -30,15 +5,12 @@ class File:
     time_created = 0
     beginning_cluster = 0
     size = 0
+    #Constructor
+    def __init__(self, name):
+        self.name = name
 
 
 from datetime import datetime, timedelta
-
-
-def twos_comp(val, bits):
-    if (val & (1 << (bits - 1))) != 0:
-        val = val - (1 << bits)
-    return val
 
 with open(r"\\.\F:", "rb") as fp:
     fp.read(3)
@@ -73,33 +45,39 @@ with open(r"\\.\F:", "rb") as fp:
             
         else:
             print("Error! The disk partition is not FAT32")
-        # dataStartIndex = 2
-        # RDETStartSec_inDT = bytesPerSector*sectorsPerCluster*RDETIndex
+        
         RDETLocation = (sectorsBeforeFAT + numberOfFATs*sectorsPerFAT)*bytesPerSector
         
-        # fp.seek(0x3EA, 0)
-        # print(fp.read(6))
         
-        file_list = File()
+        
+        file_list = File("")
         file_list = []
-        temp = File()
-        fp.seek(RDETLocation, 0)
         
+        list_length = 0
+        fp.seek(RDETLocation, 0)
+        temp_name = ""
         index = RDETLocation
         while True:
-            if (fp.read(1) == 0xE5):
+            fp.seek(index, 0)
+            isDeleted = fp.read(1)
+            #If the file is deleted
+            if (int.from_bytes(isDeleted,'little') == 229):
                 index += 32
                 continue
+            #If the entry is NULL
+            elif (int.from_bytes(isDeleted,'little') == 0):
+                break
             else:
                 fp.seek(index + 0x0B, 0)
                 check = fp.read(1)
+
                 if (int.from_bytes(check, 'little') == 15):
                     name = ""
                     fp.seek(index + 0x01, 0)
                     tmp = fp.read(1)
                     i = 0
                     while (int.from_bytes(tmp, 'little') != 255 and i < 10):
-                        if (i % 2 ==0): 
+                        if (i % 2 == 0): 
                             name = name + tmp.decode("utf-8")
                         tmp = fp.read(1)
                         i += 1
@@ -119,12 +97,21 @@ with open(r"\\.\F:", "rb") as fp:
                             name = name + tmp.decode("utf-8")
                         tmp = fp.read(1)
                         i += 1
-                    index += 32
-                    temp.name = name + temp.name
+                    temp_name = name + temp_name
                 else:
-                    file_list.append(temp)
-                    break
-        print(file_list[0].name)
+                    if (temp_name == ""):
+                        fp.seek(index, 0)
+                        temp_name = fp.read(8).decode("utf-8")
+                    file_list.append(File(temp_name))
+                    
+                    list_length += 1
+                    temp_name = ""
+                    
+                    
+
+                index += 32
+                
+        #print(file_list[0].name)
         #print(fp.read(8).decode("utf-8"))
        # fp.seek(RDETLocation + 424)
         #print(fp.read(3).decode("utf-8"))
