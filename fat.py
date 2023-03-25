@@ -1,10 +1,14 @@
+import array
+
 class File:
     name = ""
     extension = "."
-    atributes = ""
+    atributes = []
+    numberOf_atributes = 0
     time_created = 0
     beginning_cluster = 0
     size = 0
+    children = array.array("i", [])
     #Constructor
     def __init__(self, name):
         self.name = name
@@ -73,44 +77,112 @@ with open(r"\\.\F:", "rb") as fp:
 
                 if (int.from_bytes(check, 'little') == 15):
                     name = ""
+
+                    #Check if there is any 0x0F
+                    # fp.seek(index + 0x01, 0)
+                    # check = fp.read(1)
+
                     fp.seek(index + 0x01, 0)
-                    tmp = fp.read(1)
+                    tmp = fp.read(2)
+                    check = tmp[1:]
+                    
                     i = 0
-                    while (int.from_bytes(tmp, 'little') != 255 and i < 10):
-                        if (i % 2 == 0): 
-                            name = name + tmp.decode("utf-8")
-                        tmp = fp.read(1)
+
+                    while (int.from_bytes(check,'little') != 255 and i < 5):
+                        #if (i % 2 == 0): 
+                        name = name + tmp.decode("utf-16")
+                        tmp = fp.read(2)
+                        check = tmp[1:]
                         i += 1
+
                     fp.seek(index + 0x0E, 0)
-                    tmp = fp.read(1)
+                    tmp = fp.read(2)
+                    check = tmp[1:]
                     i = 0
-                    while (int.from_bytes(tmp, 'little') != 255 and i < 12):
-                        if (i % 2 == 0):
-                            name = name + tmp.decode("utf-8")
-                        tmp = fp.read(1)
+                    while (int.from_bytes(check, 'little') != 255 and i < 6):
+                        #if (i % 2 == 0):
+                        name = name + tmp.decode("utf-16")
+                        tmp = fp.read(2)
+                        check = tmp[1:]
                         i += 1
                     fp.seek(index + 0x1C, 0)
-                    tmp = fp.read(1)
+                    tmp = fp.read(2)
+                    check = tmp[1:]
                     i = 0
-                    while (int.from_bytes(tmp, 'little') != 255 and i < 4):
-                        if (i % 2 == 0): 
-                            name = name + tmp.decode("utf-8")
-                        tmp = fp.read(1)
+                    while (int.from_bytes(check, 'little') != 255 and i < 2):
+                        #if (i % 2 == 0): 
+                        name = name + tmp.decode("utf-16")
+                        tmp = fp.read(2)
+                        check = tmp[1:]
                         i += 1
                     temp_name = name + temp_name
                 else:
+                    guard = False
                     if (temp_name == ""):
                         fp.seek(index, 0)
                         temp_name = fp.read(8).decode("utf-8")
-                    file_list.append(File(temp_name))
+                        guard = True
+
+                    temp_name = temp_name[::-1]
+
+                    while (temp_name[0] == " "):
+                        temp_name = temp_name[1:]
+
+                    if (guard == False): temp_name = temp_name[1:]
+
+                    temp_name = temp_name[::-1]
                     
-                    list_length += 1
+                    if (temp_name != "." and temp_name != ".."):
+                        temp_extension = ""
+
+                        fp.seek(index + 0x08, 0)
+                        temp_extension =  fp.read(3).decode("utf-8").lower()
+
+                        if (guard and temp_extension != "   "):
+                            temp_name = temp_name + "." + temp_extension
+
+                        file_list.append(File(temp_name))
+                        list_length += 1
+
+                        file_list[list_length - 1].extension = temp_extension
+
+                        fp.seek(index + 0x0B, 0)
+
+                        temp_atribute = bin(int.from_bytes(fp.read(1), 'little'))[2:]
+                        position = 0
+                        
+                        for bit in temp_atribute[::-1]:
+                            print(position, end = ' ') 
+                            print(bit)
+                            if (bit == "1"):
+                                if (position == 0): 
+                                    file_list[list_length - 1].atributes.append("Read Only")
+                                elif (position == 1): 
+                                    file_list[list_length - 1].atributes.append("Hidden")
+                                elif (position == 2): 
+                                    file_list[list_length - 1].atributes.append("System")
+                                elif (position == 3): 
+                                    file_list[list_length - 1].atributes.append("Vol Label")
+                                elif (position == 4): 
+                                    file_list[list_length - 1].atributes.append("Directory")
+                                elif (position == 5): 
+                                    file_list[list_length - 1].atributes.append("Archieve")
+                                file_list[list_length - 1].numberOf_atributes += 1
+                            position += 1
+                            #print(bit, end = ' ')
+                        print()
+                        print(file_list[list_length - 1].name, end = ', ')
+                        
+                        for i in range(file_list[list_length - 1].numberOf_atributes):
+                            print(file_list[list_length - 1].atributes[i], end = ' ')
+                        print()
+
                     temp_name = ""
-                    
                     
 
                 index += 32
-                
+        # for i in range(list_length):
+        #     print(file_list[i].name)
         #print(file_list[0].name)
         #print(fp.read(8).decode("utf-8"))
        # fp.seek(RDETLocation + 424)
