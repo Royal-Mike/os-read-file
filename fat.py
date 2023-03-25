@@ -106,10 +106,7 @@ with open(r"\\.\F:", "rb") as fp:
                         index = child_location
                         father.append(cou)
                         sentinal += 1
-                    elif (index - child_location > 0):
-                        for j in range(cou, list_length):
-                            if (file_list[j].location > child_location):
-                                file_list[j].father = cou
+                    
                 cou += 1
             else:
                 fp.seek(index + 0x0B, 0)
@@ -275,7 +272,7 @@ with open(r"\\.\F:", "rb") as fp:
             print("Attributes: " + file_list[j].attributes)
             print("Time created: " + file_list[j].created_time)
             print("Date created: " + file_list[j].created_date)
-            print("Size: " + str(file_list[j].size) + "bytes")
+            print("Size: " + str(file_list[j].size) + " bytes")
             print("Father: " + str(file_list[j].father))
             print()
       
