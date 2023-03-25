@@ -151,21 +151,14 @@ with open(r"\\.\E:", "rb") as fp:
 
             if fileDateCreated == '': break
 
-            fileData = File(fileID, fileIDParent, fileName, fileAttributes, fileDateCreated, fileTimeCreated, fileSize)
-            filesFAT.append(fileData)
-            print('File ' + str(fileID))
-            print('File Parent ' + str(fileIDParent))
-            print('Name: ' + fileName)
-
-            if not fileAttributes: print('Attributes: None')
+            fileAttributesString = ''
+            if not fileAttributes: fileAttributesString = 'None'
             else:
                 setAttributes = [*set(fileAttributes)]
-                print('Attributes: ' + ', '.join(setAttributes))
+                fileAttributesString = ', '.join(setAttributes)
 
-            print('Date created: ' + str(fileDateCreated))
-            print('Time created: ' + str(fileTimeCreated))
-            print('Size: ' + str(fileSize) + 'B')
-            print()
+            fileData = File(fileID, fileIDParent, fileName, fileAttributesString, fileDateCreated, fileTimeCreated, fileSize)
+            filesFAT.append(fileData)
 
 # Create window
 window = tk.Tk()
@@ -238,8 +231,7 @@ def display_info(self):
         if file.ID == int(item):
             # Display the information
             name_entry['text'] = file.name
-            set_attributes = [*set(file.attributes)]
-            attribute_entry['text'] = ', '.join(set_attributes)
+            attribute_entry['text'] = file.attributes
             date_entry['text'] = file.date_created
             time_entry['text'] = file.time_created
             size_entry['text'] = str(file.size) + ' bytes'
