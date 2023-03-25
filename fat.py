@@ -84,9 +84,7 @@ with open(r"\\.\F:", "rb") as fp:
         fp.read(1)
         temp_name = ""
         index = RDETLocation
-        #Check if there are no more files to read
-    
-        #Count the file
+        #Check if there are no more files to read by counting the file
         cou = 0
         father = -1
         while True:
@@ -112,20 +110,12 @@ with open(r"\\.\F:", "rb") as fp:
                             if (file_list[j].location > child_location):
                                 file_list[j].father = cou
                 cou += 1
-                # for j in range(list_length):
-                #     print(file_list[j].name, end =  ' index: ' + str(j) + ' father: ')
-                #     print(file_list[j].father, end = ' ')
-                #     print(file_list[j].location)
             else:
                 fp.seek(index + 0x0B, 0)
                 check = fp.read(1)
 
                 if (int.from_bytes(check, 'little') == 15):
                     name = ""
-
-                    #Check if there is any 0x0F
-                    # fp.seek(index + 0x01, 0)
-                    # check = fp.read(1)
 
                     fp.seek(index + 0x01, 0)
                     tmp = fp.read(2)
@@ -134,7 +124,6 @@ with open(r"\\.\F:", "rb") as fp:
                     i = 0
 
                     while (int.from_bytes(check,'little') != 255 and i < 5):
-                        #if (i % 2 == 0): 
                         name = name + tmp.decode("utf-16")
                         tmp = fp.read(2)
                         check = tmp[1:]
@@ -145,7 +134,6 @@ with open(r"\\.\F:", "rb") as fp:
                     check = tmp[1:]
                     i = 0
                     while (int.from_bytes(check, 'little') != 255 and i < 6):
-                        #if (i % 2 == 0):
                         name = name + tmp.decode("utf-16")
                         tmp = fp.read(2)
                         check = tmp[1:]
@@ -155,7 +143,6 @@ with open(r"\\.\F:", "rb") as fp:
                     check = tmp[1:]
                     i = 0
                     while (int.from_bytes(check, 'little') != 255 and i < 2):
-                        #if (i % 2 == 0): 
                         name = name + tmp.decode("utf-16")
                         tmp = fp.read(2)
                         check = tmp[1:]
@@ -263,9 +250,6 @@ with open(r"\\.\F:", "rb") as fp:
                             tmp_time += t_time[i]
                         file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
 
-                        # print(file_list[list_length - 1].name, end = ', time created:: ')
-                        # print(file_list[list_length - 1].created_time, end = ' date created: ')
-                        # print(file_list[list_length - 1].created_date)
 
                         fp.seek(index + 0x1A, 0)
 
@@ -282,125 +266,13 @@ with open(r"\\.\F:", "rb") as fp:
 
                 index += 32
 
-        # for j in range(list_length):
-        #     print(j, end= ' ')
-        #     print(file_list[j].name, end = ', ')
-        #     print(file_list[j].father)
-        #     print()
-        #     print(file_list[i].name)
-        #print(file_list[0].name)
-        #print(fp.read(8).decode("utf-8"))
-       # fp.seek(RDETLocation + 424)
-        #print(fp.read(3).decode("utf-8"))
-
-        # fp.seek(RDETLocation + 0x0D, 0)
-        # time = int.from_bytes(fp.read(3), 'little')
-        # hour = time // 3600000
-        # minute = (time - hour * 3600000)//60000
-        # second = (time - hour*3600000 - minute*60000) // 1000
-        # milisecond = time - hour*3600000 - minute*60000 - second*1000
-        # print(str(hour) + ":" + str(minute) + ":" + str(second) + "." + str(milisecond))
-
-        # fp.seek(RDETLocation + 0x10, 0)
-        # print(int.from_bytes(fp.read(2),'little'))
-
-        # print("Bytes per Sector: " + str(bytesPerSector))
-        # print("Sector per Cluster: " + str(sectorsPerCluster))
-        # print("Sectors before FAT: " + str(sectorsBeforeFAT))
-        # print("Number of Sectors of FAT: " + str(sectorsPerFAT))
-        # print("Size of Volume: " + str(volumeSize))
-        # print("Number of FAT: " + str(numberOfFATs))
-        # print("RDET's index cluster: " + str(RDETIndex))
-        # print("RDET location: " + str(RDETLocation))
-    #     fp.seek(0x18, 0)
-    #     sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
-    #     fp.seek(0x1A, 0)
-    #     heads = int.from_bytes(fp.read(2), 'little')
-    #     fp.seek(0x28, 0)
-    #     sectorsInDisk = int.from_bytes(fp.read(8), 'little')
-    #     fp.seek(0x30, 0)
-    #     MFTstartCluster = int.from_bytes(fp.read(8), 'little')
-    #     fp.seek(0x38, 0)
-    #     MFTBstartCluster = int.from_bytes(fp.read(8), 'little')
-    #     fp.seek(0x40, 0)
-    #     bytesPerMFTEntryNC = int.from_bytes(fp.read(1), 'little')
-    #     bytesPerMFTEntry = 2 ** abs(twos_comp(bytesPerMFTEntryNC, len(bin(bytesPerMFTEntryNC)[2:])))
-
-    #     print('Bytes per Sector: ' + str(bytesPerSector))
-    #     print('Sectors per Cluster: ' + str(sectorsPerCluster))
-    #     print('Sectors per Track: ' + str(sectorsPerTrack))
-    #     print('Heads: ' + str(heads))
-    #     print('Sectors in Disk: ' + str(sectorsInDisk))
-    #     print('First MFT Cluster: ' + str(MFTstartCluster))
-    #     print('First MFT Backup Cluster: ' + str(MFTBstartCluster))
-    #     print('Bytes per MFT Entry: ' + str(bytesPerMFTEntry))
-
-    #     print()
-
-    #     MFTstartByte = MFTstartCluster * sectorsPerCluster * bytesPerSector
-    #     fp.seek(MFTstartByte, 0)
-    #     fp.read(1)
-
-    #     startMFTEntry = MFTstartByte
-    #     i = 1
-    #     while i < 20:
-    #         print('File ' + str(i))
-
-    #         nextMFTEntry = startMFTEntry + bytesPerMFTEntry
-
-    #         fp.seek(startMFTEntry, 0)
-    #         fp.read(1)
-
-    #         fp.seek(startMFTEntry + 0x14, 0)
-    #         offsetFirstAttribute = int.from_bytes(fp.read(2), 'little')
-
-    #         fp.seek(startMFTEntry + 0x18, 0)
-    #         sizeMFTEntryUsed = int.from_bytes(fp.read(4), 'little')
-    #         print('Size: ' + str(sizeMFTEntryUsed) + 'B')
-
-    #         startAttribute = startMFTEntry + offsetFirstAttribute
-
-    #         if (sizeMFTEntryUsed > 0):
-    #             while True:
-    #                 fp.seek(startAttribute, 0)
-    #                 typeAttribute = hex(int.from_bytes(fp.read(4), 'little'))
-
-    #                 if typeAttribute == "0xffffffff": break
-
-    #                 fp.seek(startAttribute + 0x10, 0)
-    #                 sizeContent = int.from_bytes(fp.read(4), 'little')
-
-    #                 fp.seek(startAttribute + 0x14, 0)
-    #                 offsetContent = int.from_bytes(fp.read(2), 'little')
-
-    #                 startContent = startAttribute + offsetContent
-
-    #                 # $STANDARD_INFORMATION
-    #                 if (typeAttribute == "0x10"):
-    #                     fp.seek(startContent, 0)
-    #                     timeCreatedNS = int.from_bytes(fp.read(8), 'little')
-    #                     organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS/1e7)
-    #                     dateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
-    #                     timeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
-    #                     print('Date created: ' + str(dateCreated))
-    #                     print('Time created: ' + str(timeCreated))
-
-    #                 # $FILE_NAME
-    #                 elif (typeAttribute == "0x30"):
-    #                     fp.seek(startContent + 0x38, 0)
-    #                     fileAttribute = int.from_bytes(fp.read(4), 'little')
-    #                     fp.seek(startContent + 0x40, 0)
-    #                     lengthFileName = int.from_bytes(fp.read(1), 'little')
-    #                     fp.seek(startContent + 0x42, 0)
-    #                     fileName = fp.read(lengthFileName * 2).replace(b'\x00', b'').decode('utf-8')
-    #                     print('Name: ' + fileName)
-
-    #                 fp.seek(startAttribute + 0x04, 0)
-    #                 sizeAttribute = int.from_bytes(fp.read(4), 'little')
-
-    #                 startAttribute += sizeAttribute
-
-    #         print()
-
-    #         startMFTEntry += bytesPerMFTEntry
-    #         i += 1
+        for j in range(list_length):
+            print("File " + str(j))
+            print("Name: " + file_list[j].name)
+            print("Attributes: " + file_list[j].attributes)
+            print("Time created: " + file_list[j].created_time)
+            print("Date created: " + file_list[j].created_date)
+            print("Size: " + str(file_list[j].size) + "bytes")
+            print("Father: " + str(file_list[j].father))
+            print()
+      
