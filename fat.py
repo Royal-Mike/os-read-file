@@ -176,8 +176,7 @@ with open(r"\\.\F:", "rb") as fp:
 
                         file_list[list_length - 1].location = index
                         
-                        if (file_list[list_length - 1].father == -1 and sentinal > 0):
-                            file_list[list_length - 1].father = father[sentinal]
+                        file_list[list_length - 1].father = father[sentinal]
 
                         file_list[list_length - 1].extension = temp_extension
 
