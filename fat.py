@@ -83,10 +83,11 @@ with open(r"\\.\F:", "rb") as fp:
         fp.seek(RDETLocation, 0)
         fp.read(1)
         temp_name = ""
-        index = RDETLocation
+        index = RDETLocation + 32
         #Check if there are no more files to read by counting the file
         cou = 0
-        father = -1
+        sentinal = 0
+        father = [-1]
         while True:
             fp.seek(index, 0)
             isDeleted = fp.read(1)
@@ -98,13 +99,13 @@ with open(r"\\.\F:", "rb") as fp:
             elif (int.from_bytes(isDeleted,'little') == 0):
                 if (cou >= list_length):
                     break
-                
 
                 if (file_list[cou].sentinal):
                     child_location = (file_list[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
                     if (index - child_location < 0):
                         index = child_location
-                        father = cou
+                        father.append(cou)
+                        sentinal += 1
                     elif (index - child_location > 0):
                         for j in range(cou, list_length):
                             if (file_list[j].location > child_location):
@@ -177,7 +178,9 @@ with open(r"\\.\F:", "rb") as fp:
                         list_length += 1
 
                         file_list[list_length - 1].location = index
-                        file_list[list_length - 1].father = father
+                        
+                        if (file_list[list_length - 1].father == -1 and sentinal > 0):
+                            file_list[list_length - 1].father = father[sentinal]
 
                         file_list[list_length - 1].extension = temp_extension
 
@@ -265,7 +268,7 @@ with open(r"\\.\F:", "rb") as fp:
                     
 
                 index += 32
-
+        
         for j in range(list_length):
             print("File " + str(j))
             print("Name: " + file_list[j].name)
