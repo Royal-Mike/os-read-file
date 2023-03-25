@@ -1,34 +1,23 @@
-import array
-
-class time:
-    hours = 0
-    minutes = 0
-    seconds = 0
-    miliseconds = 0
-
-class date:
-    days = 0
-    months = 0
-    years = 0
-
 class File:
     name = ""
     extension = "."
-    atributes = ""
+    attributes = ""
     
-    created_time = time()
-    created_date = date()
+    created_time = ""
+    created_date = ""
 
-
+    location = 0
     beginning_cluster = 0
     size = 0
-    children = array.array("i", [])
+    father = -1
+    #Check if it is a directory
+    sentinal = False
     #Constructor
     def __init__(self, name):
         self.name = name
 
 
-def getAtributes(atributes):
+def getAttributes(atributes):
     temp = ""
     for i in range(len(atributes)):
         if (atributes[i] == "0"):
@@ -40,7 +29,7 @@ def getAtributes(atributes):
         elif (atributes[i] == "3"):
             temp += "Volume label"
         elif (atributes[i] == "4"):
-            temp += "Director"
+            temp += "Directory"
         elif (atributes[i] == "5"):
             temp += "Archive"
 
@@ -84,6 +73,7 @@ with open(r"\\.\F:", "rb") as fp:
         else:
             print("Error! The disk partition is not FAT32")
         
+
         RDETLocation = (sectorsBeforeFAT + numberOfFATs*sectorsPerFAT)*bytesPerSector
         
         file_list = File("")
@@ -94,6 +84,11 @@ with open(r"\\.\F:", "rb") as fp:
         fp.read(1)
         temp_name = ""
         index = RDETLocation
+        #Check if there are no more files to read
+    
+        #Count the file
+        cou = 0
+        father = -1
         while True:
             fp.seek(index, 0)
             isDeleted = fp.read(1)
@@ -103,7 +98,24 @@ with open(r"\\.\F:", "rb") as fp:
                 continue
             #If the entry is NULL
             elif (int.from_bytes(isDeleted,'little') == 0):
-                break
+                if (cou >= list_length):
+                    break
+                
+
+                if (file_list[cou].sentinal):
+                    child_location = (file_list[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
+                    if (index - child_location < 0):
+                        index = child_location
+                        father = cou
+                    elif (index - child_location > 0):
+                        for j in range(cou, list_length):
+                            if (file_list[j].location > child_location):
+                                file_list[j].father = cou
+                cou += 1
+                # for j in range(list_length):
+                #     print(file_list[j].name, end =  ' index: ' + str(j) + ' father: ')
+                #     print(file_list[j].father, end = ' ')
+                #     print(file_list[j].location)
             else:
                 fp.seek(index + 0x0B, 0)
                 check = fp.read(1)
@@ -177,19 +189,28 @@ with open(r"\\.\F:", "rb") as fp:
                         file_list.append(File(temp_name))
                         list_length += 1
 
+                        file_list[list_length - 1].location = index
+                        file_list[list_length - 1].father = father
+
                         file_list[list_length - 1].extension = temp_extension
 
                         fp.seek(index + 0x0B, 0)
 
-                        temp_atribute = bin(int.from_bytes(fp.read(1), 'little'))[2:]
+                        temp_attribute = bin(int.from_bytes(fp.read(1), 'little'))[2:]
                         position = 0
                         
-                        for bit in temp_atribute[::-1]:
+                        for bit in temp_attribute[::-1]:
                             if (bit == "1"):
                                 if (position == 0 or position == 1 or position == 2 or position == 3 or position == 4 or position == 5): 
-                                    file_list[list_length - 1].atributes += str(position) + " "
+                                    if (position == 4): file_list[list_length - 1].sentinal = True
+                                    file_list[list_length - 1].attributes += str(position) + " "
                             position += 1
                         
+                        t_attribute = getAttributes(file_list[list_length - 1].attributes)
+
+                        file_list[list_length - 1].attributes = t_attribute
+
+
                         fp.seek(index + 0x0D, 0)
 
                         t_time = '{0:b}'.format(int.from_bytes(fp.read(3), 'little'))
@@ -202,22 +223,21 @@ with open(r"\\.\F:", "rb") as fp:
                         for i in range(5):
                             tmp_time += t_time[i]
 
-                        file_list[list_length - 1].created_time.hours = int(tmp_time, 2)
-
+                        file_list[list_length - 1].created_time = file_list[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
                         tmp_time =""
                         for i in range(5, 11):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_time.minutes = int(tmp_time, 2)
+                        file_list[list_length - 1].created_time = file_list[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
 
                         tmp_time =""
                         for i in range(11, 17):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_time.seconds = int(tmp_time, 2)
+                        file_list[list_length - 1].created_time = file_list[list_length - 1].created_time + str(int(tmp_time, 2)) + "."
 
                         tmp_time =""
                         for i in range(17, 24):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_time.miliseconds = int(tmp_time, 2)
+                        file_list[list_length - 1].created_time += str(int(tmp_time, 2))
 
                         #Date
                         tmp_time = ""
@@ -231,27 +251,21 @@ with open(r"\\.\F:", "rb") as fp:
                         for i in range(7):
                             tmp_time += t_time[i]
 
-                        file_list[list_length - 1].created_date.years = int(tmp_time, 2) + 1980
+                        file_list[list_length - 1].created_date = str(int(tmp_time, 2) + 1980) + file_list[list_length - 1].created_date
 
                         tmp_time =""
                         for i in range(7, 11):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_date.months = int(tmp_time, 2)
+                        file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
 
                         tmp_time =""
                         for i in range(11, 16):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_date.days = int(tmp_time, 2)
+                        file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
 
-                        # print(file_list[list_length - 1].name, end = ', created time: ')
-                        # print(file_list[list_length - 1].created_time.hours, end = ':')   
-                        # print(file_list[list_length - 1].created_time.minutes, end = ':') 
-                        # print(file_list[list_length - 1].created_time.seconds, end = '.') 
-                        # print(file_list[list_length - 1].created_time.miliseconds, end = ', create date: ')
-
-                        # print(file_list[list_length - 1].created_date.days, end = '/')   
-                        # print(file_list[list_length - 1].created_date.months, end = '/') 
-                        # print(file_list[list_length - 1].created_date.years)
+                        # print(file_list[list_length - 1].name, end = ', time created:: ')
+                        # print(file_list[list_length - 1].created_time, end = ' date created: ')
+                        # print(file_list[list_length - 1].created_date)
 
                         fp.seek(index + 0x1A, 0)
 
@@ -260,17 +274,18 @@ with open(r"\\.\F:", "rb") as fp:
                         fp.seek(index + 0x1C, 0)
                         file_list[list_length - 1].size = int.from_bytes(fp.read(4), 'little')
 
-                        print(file_list[list_length - 1]. name, end = ', size: ')
-                        print(file_list[list_length - 1].size, end = ', starting cluster: ')
-                        print(file_list[list_length - 1].beginning_cluster)
+                        # print(file_list[list_length - 1]. name, end = ', size: ')
+                        # print(file_list[list_length - 1].size, end = ', starting cluster: ')
+                        # print(file_list[list_length - 1].beginning_cluster)
                     temp_name = ""
                     
 
                 index += 32
-        
+
         # for j in range(list_length):
+        #     print(j, end= ' ')
         #     print(file_list[j].name, end = ', ')
-        #     print(getAtributes(file_list[j].atributes))
+        #     print(file_list[j].father)
         #     print()
         #     print(file_list[i].name)
         #print(file_list[0].name)
