@@ -83,7 +83,7 @@ with open(r"\\.\F:", "rb") as fp:
         fp.seek(RDETLocation, 0)
         fp.read(1)
         temp_name = ""
-        index = RDETLocation + 32
+        index = RDETLocation
         #Check if there are no more files to read by counting the file
         cou = 0
         sentinal = 0
@@ -102,10 +102,16 @@ with open(r"\\.\F:", "rb") as fp:
 
                 if (file_list[cou].sentinal):
                     child_location = (file_list[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
+                    #If the children files havenot been read
                     if (index - child_location < 0):
                         index = child_location
                         father.append(cou)
                         sentinal += 1
+                    #If the children files have been read
+                    else:
+                        for j in range(cou, list_length):
+                            if (file_list[j].father == -1 and file_list.location > child_location):
+                                file_list[j].father = cou
                     
                 cou += 1
             else:
@@ -145,8 +151,10 @@ with open(r"\\.\F:", "rb") as fp:
                         tmp = fp.read(2)
                         check = tmp[1:]
                         i += 1
+                    #Reverse the file name
                     temp_name = name + temp_name
                 else:
+                    #Check if there is any extra entries before this main entry
                     guard = False
                     if (temp_name == ""):
                         fp.seek(index, 0)
@@ -242,12 +250,18 @@ with open(r"\\.\F:", "rb") as fp:
                         tmp_time =""
                         for i in range(7, 11):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
+                        if (int(tmp_time, 2) == 0):
+                            file_list[list_length - 1].created_date = "1/" + file_list[list_length - 1].created_date
+                        else:
+                            file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
 
                         tmp_time =""
                         for i in range(11, 16):
                             tmp_time += t_time[i]
-                        file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
+                        if (int(tmp_time, 2) == 0):
+                            file_list[list_length - 1].created_date = "1/" + file_list[list_length - 1].created_date
+                        else:
+                            file_list[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + file_list[list_length - 1].created_date
 
 
                         fp.seek(index + 0x1A, 0)
@@ -257,9 +271,6 @@ with open(r"\\.\F:", "rb") as fp:
                         fp.seek(index + 0x1C, 0)
                         file_list[list_length - 1].size = int.from_bytes(fp.read(4), 'little')
 
-                        # print(file_list[list_length - 1]. name, end = ', size: ')
-                        # print(file_list[list_length - 1].size, end = ', starting cluster: ')
-                        # print(file_list[list_length - 1].beginning_cluster)
                     temp_name = ""
                     
 
