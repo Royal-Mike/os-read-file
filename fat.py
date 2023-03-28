@@ -88,13 +88,14 @@ with open(r"\\.\F:", "rb") as fp:
         cou = 0
         sentinal = 0
         father = [-1]
+        isRead = []
+        r_check = False
         while True:
             fp.seek(index, 0)
             isDeleted = fp.read(1)
             #If the file is deleted
             if (int.from_bytes(isDeleted,'little') == 229):
                 index += 32
-                continue
             #If the entry is NULL
             elif (int.from_bytes(isDeleted,'little') == 0):
                 if (cou >= list_length):
@@ -109,11 +110,21 @@ with open(r"\\.\F:", "rb") as fp:
                         sentinal += 1
                     #If the children files have been read
                     else:
-                        for j in range(cou, list_length):
-                            if (file_list[j].father == -1 and file_list.location > child_location):
-                                file_list[j].father = cou
+                        for j in range(len(isRead)):
+                            if (child_location == isRead[j]):
+                                r_check = True
+                        if (r_check == False):
+                            index = child_location
+                            father.append(cou)
+                            sentinal += 1
+                        else:
+                            for j in range(cou,list_length):
+                                if (file_list[j].location > child_location):
+                                    file_list[j].father = cou
+                    isRead.append(child_location)
                     
                 cou += 1
+
             else:
                 fp.seek(index + 0x0B, 0)
                 check = fp.read(1)
@@ -275,7 +286,7 @@ with open(r"\\.\F:", "rb") as fp:
                     
 
                 index += 32
-        
+        print(isRead)
         for j in range(list_length):
             print("File " + str(j))
             print("Name: " + file_list[j].name)

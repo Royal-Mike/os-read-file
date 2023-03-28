@@ -370,6 +370,8 @@ def open_partition():
                 cou = 0
                 sentinal = 0
                 father = [-1]
+                isRead = []
+                r_check = False
                 while True:
                     fp.seek(index, 0)
                     isDeleted = fp.read(1)
@@ -391,9 +393,18 @@ def open_partition():
                                 sentinal += 1
                             #If the children files have been read
                             else:
-                                for j in range(cou, list_length):
-                                    if (filesFAT32[j].location > child_location):
-                                        filesFAT32[j].father = cou
+                                for j in range(len(isRead)):
+                                    if (filesFAT32[j].location == isRead[j]):
+                                        r_check = True
+                                if (r_check == False):
+                                    index = child_location
+                                    father.append(cou)
+                                    sentinal += 1
+                                else:
+                                    for j in range(cou,list_length):
+                                         if (filesFAT32[j].location > child_location):
+                                            filesFAT32[j].father = cou
+                            isRead.append(child_location)
                             
                         cou += 1
                     else:
