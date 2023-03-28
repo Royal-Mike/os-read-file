@@ -227,6 +227,10 @@ def open_partition():
                             fp.seek(-totalAttributes, 1)
                             break
 
+                        fp.seek(0x04, 1)
+                        sizeAttribute = int.from_bytes(fp.read(4), 'little')
+                        fp.seek(-4 - 0x04, 1)
+
                         fp.seek(0x10, 1)
                         sizeContent = int.from_bytes(fp.read(4), 'little')
                         fp.seek(-4 - 0x10, 1)
@@ -276,11 +280,20 @@ def open_partition():
 
                         # $DATA
                         elif typeAttribute == "0x80":
-                            fileSize = sizeContent
+                            fp.seek(offsetContent, 1)
 
-                        fp.seek(0x04, 1)
-                        sizeAttribute = int.from_bytes(fp.read(4), 'little')
-                        fp.seek(-4 - 0x04, 1)
+                            fp.seek(0x08, 1)
+                            residentType = int.from_bytes(fp.read(1), 'little')
+                            fp.seek(-1 - 0x08, 1)
+
+                            if (residentType == 0):
+                                fileSize = sizeContent
+                            else:
+                                fp.seek(0x38, 1)
+                                fileSize = int.from_bytes(fp.read(8), 'little')
+                                fp.seek(-8 - 0x38, 1)
+
+                            fp.seek(-offsetContent, 1)
 
                         totalAttributes += sizeAttribute
                         fp.seek(sizeAttribute, 1)
