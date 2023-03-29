@@ -12,23 +12,23 @@ def twos_comp(val, bits):
     return val
 
 # Lấy thuộc tính của file FAT32
-def getAttributes(atributes):
+def getAttributes(attributes):
     temp = ""
-    for i in range(len(atributes)):
-        if (atributes[i] == "0"):
+    for i in range(len(attributes)):
+        if (attributes[i] == "0"):
             temp += "Read-Only"
-        elif (atributes[i] == "1"):
+        elif (attributes[i] == "1"):
             temp += "Hidden"
-        elif (atributes[i] == "2"):
+        elif (attributes[i] == "2"):
             temp += "System"
-        elif (atributes[i] == "3"):
+        elif (attributes[i] == "3"):
             temp += "Volume label"
-        elif (atributes[i] == "4"):
+        elif (attributes[i] == "4"):
             temp += "Directory"
-        elif (atributes[i] == "5"):
+        elif (attributes[i] == "5"):
             temp += "Archive"
 
-        if (i < len(atributes) - 2):
+        if (i < len(attributes) - 2 and attributes[i] >= '0' and attributes[i] <= '9'):
             temp += ", "
     return temp
 
@@ -344,7 +344,7 @@ def open_partition():
             FATtype = fp.read(5).decode("ascii")
 
             if (FATtype != "FAT32"):
-                print("ERROR: Partition là FAT nhưng không phải FAT32")
+                print("ERROR: Partition is FAT but it is not FAT32")
                 
             else:
                 fp.seek(0x20, 0)
@@ -389,8 +389,6 @@ def open_partition():
                             #If the children files havenot been read
                             if (index - child_location < 0):
                                 index = child_location
-                                father.append(cou)
-                                sentinal += 1
                             
                             else:
                                 for i in range(list_length):
@@ -399,13 +397,6 @@ def open_partition():
                                             r_check = True
                                     if (r_check == False):
                                         index = child_location
-                                        father.append(cou)
-                                        sentinal += 1
-                                    else:
-                                        #If the children files have been read
-                                        for j in range(cou,list_length):
-                                             if (filesFAT32[j].location > child_location):
-                                                filesFAT32[j].father = cou
                                                 
                             isRead.append(child_location)
                             
@@ -465,6 +456,11 @@ def open_partition():
                             if (guard == False): temp_name = temp_name[1:]
 
                             temp_name = temp_name[::-1]
+                            if (temp_name == "."):
+                                fp.seek(index + 32, 0)
+                                temp_name = fp.read(8).decode("utf-8").replace(" ","")
+                                if (temp_name == ".."):
+                                    sentinal += 1
                             
                             if (temp_name != "." and temp_name != ".."):
                                 temp_extension = ""
@@ -492,7 +488,9 @@ def open_partition():
                                 for bit in temp_attribute[::-1]:
                                     if (bit == "1"):
                                         if (position == 0 or position == 1 or position == 2 or position == 3 or position == 4 or position == 5): 
-                                            if (position == 4): filesFAT32[list_length - 1].sentinal = True
+                                            if (position == 4): 
+                                                filesFAT32[list_length - 1].sentinal = True
+                                                father.append(list_length - 1)
                                             filesFAT32[list_length - 1].attributes += str(position) + " "
                                     position += 1
                                 
@@ -504,7 +502,7 @@ def open_partition():
                                 fp.seek(index + 0x0D, 0)
 
                                 t_time = '{0:b}'.format(int.from_bytes(fp.read(3), 'little'))
-                                #print(t_time)
+                                
 
                                 for i in range(24 - len(t_time)):
                                     t_time = "0" + t_time
