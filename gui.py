@@ -337,7 +337,6 @@ def open_partition():
 
             fp.seek(0x52, 0)
 
-            numberOfEntriesofRDET = 0 
             volumeSize = 0 
             sectorsPerFAT = 0
 
