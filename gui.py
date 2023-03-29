@@ -456,6 +456,11 @@ def open_partition():
                             if (guard == False): temp_name = temp_name[1:]
 
                             temp_name = temp_name[::-1]
+                            tmp = temp_name
+
+                            fp.seek(index + 0x08, 0)
+                            temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
+                            
                             if (temp_name == "."):
                                 fp.seek(index + 32, 0)
                                 temp_name = fp.read(8).decode("utf-8").replace(" ","")
@@ -463,6 +468,7 @@ def open_partition():
                                     sentinal += 1
                             
                             if (temp_name != "." and temp_name != ".."):
+                                temp_name = tmp
                                 temp_extension = ""
 
                                 fp.seek(index + 0x08, 0)
