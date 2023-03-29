@@ -372,6 +372,7 @@ def open_partition():
                 father = [-1]
                 isRead = []
                 r_check = False
+                is_children = True
                 while True:
                     fp.seek(index, 0)
                     isDeleted = fp.read(1)
@@ -387,19 +388,15 @@ def open_partition():
                         if (filesFAT32[cou].sentinal):
                             child_location = (filesFAT32[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
                             #If the children files havenot been read
-                            if (index - child_location < 0):
+                            
+                            for j in range(len(isRead)):
+                                if (child_location == isRead[j]):
+                                    r_check = True
+                            if (r_check == False):
                                 index = child_location
-                            
-                            else:
-                                for i in range(list_length):
-                                    for j in range(len(isRead)):
-                                        if (filesFAT32[i].location == isRead[j]):
-                                            r_check = True
-                                    if (r_check == False):
-                                        index = child_location
                                                 
-                            isRead.append(child_location)
                             
+                            r_check = False
                         cou += 1
                     else:
                         fp.seek(index + 0x0B, 0)
@@ -456,18 +453,22 @@ def open_partition():
                             if (guard == False): temp_name = temp_name[1:]
 
                             temp_name = temp_name[::-1]
+                            
                             tmp = temp_name
-
-                            fp.seek(index + 0x08, 0)
-                            temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
+                            if (temp_name == "."):
+                                fp.seek(index + 0x08, 0)
+                                temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
                             
                             if (temp_name == "."):
                                 fp.seek(index + 32, 0)
                                 temp_name = fp.read(8).decode("utf-8").replace(" ","")
+                                fp.seek(index + 40, 0)
+                                temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
                                 if (temp_name == ".."):
                                     sentinal += 1
+                                    isRead.append(index)
                             
-                            if (temp_name != "." and temp_name != ".."):
+                            if (temp_name != "." and temp_name != ".." and tmp != "." and tmp != ".."):
                                 temp_name = tmp
                                 temp_extension = ""
 
@@ -482,7 +483,10 @@ def open_partition():
 
                                 filesFAT32[list_length - 1].location = index
                                 
-                                filesFAT32[list_length - 1].father = father[sentinal]
+                                if (sentinal == len(father)):
+                                    filesFAT32[list_length - 1].father = father[sentinal - 1]
+                                else:
+                                    filesFAT32[list_length - 1].father = father[sentinal]
 
                                 filesFAT32[list_length - 1].extension = temp_extension
 
@@ -574,7 +578,8 @@ def open_partition():
                             temp_name = ""
                         
                         index += 32
-
+                
+                   
             partition_type_entry['text'] = 'FAT32'
             insert_tree('FAT32')
 
