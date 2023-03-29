@@ -371,7 +371,7 @@ def open_partition():
                 father = [-1]
                 isRead = []
                 r_check = False
-                is_children = True
+                
                 while True:
                     fp.seek(index, 0)
                     isDeleted = fp.read(1)
