@@ -152,438 +152,430 @@ def open_partition():
     global filesNTFS
     filesNTFS.clear()
     partition = partition_input.get()
-    with open("\\\\.\\" + partition + ":", "rb") as fp:
-        # Đọc format
-        fp.read(3)
-        type = fp.read(5).decode("ascii")
-        # Kiểu NTFS
-        if type == "NTFS ":
-            fp.seek(0x0B, 0)
-            bytesPerSector = int.from_bytes(fp.read(2), 'little')
-            fp.seek(0x0D, 0)
-            sectorsPerCluster = int.from_bytes(fp.read(1), 'little')
-            fp.seek(0x18, 0)
-            sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
-            fp.seek(0x1A, 0)
-            heads = int.from_bytes(fp.read(2), 'little')
-            fp.seek(0x28, 0)
-            sectorsInDisk = int.from_bytes(fp.read(8), 'little')
-            fp.seek(0x30, 0)
-            MFTstartCluster = int.from_bytes(fp.read(8), 'little')
-            fp.seek(0x38, 0)
-            MFTBstartCluster = int.from_bytes(fp.read(8), 'little')
-            fp.seek(0x40, 0)
-            bytesPerMFTEntryNC = int.from_bytes(fp.read(1), 'little')
-            bytesPerMFTEntry = 2 ** abs(twos_comp(bytesPerMFTEntryNC, len(bin(bytesPerMFTEntryNC)[2:])))
+    try:
+        with open("\\\\.\\" + partition + ":", "rb") as fp:
+            # Đọc format
+            fp.read(3)
+            type = fp.read(5).decode("ascii")
+            # Kiểu NTFS
+            if type == "NTFS ":
+                fp.seek(0x0B, 0)
+                bytesPerSector = int.from_bytes(fp.read(2), 'little')
+                fp.seek(0x0D, 0)
+                sectorsPerCluster = int.from_bytes(fp.read(1), 'little')
+                fp.seek(0x18, 0)
+                sectorsPerTrack = int.from_bytes(fp.read(2), 'little')
+                fp.seek(0x1A, 0)
+                heads = int.from_bytes(fp.read(2), 'little')
+                fp.seek(0x28, 0)
+                sectorsInDisk = int.from_bytes(fp.read(8), 'little')
+                fp.seek(0x30, 0)
+                MFTstartCluster = int.from_bytes(fp.read(8), 'little')
+                fp.seek(0x38, 0)
+                MFTBstartCluster = int.from_bytes(fp.read(8), 'little')
+                fp.seek(0x40, 0)
+                bytesPerMFTEntryNC = int.from_bytes(fp.read(1), 'little')
+                bytesPerMFTEntry = 2 ** abs(twos_comp(bytesPerMFTEntryNC, len(bin(bytesPerMFTEntryNC)[2:])))
 
-            print('Bytes per Sector: ' + str(bytesPerSector))
-            print('Sectors per Cluster: ' + str(sectorsPerCluster))
-            print('Sectors per Track: ' + str(sectorsPerTrack))
-            print('Heads: ' + str(heads))
-            print('Sectors in Disk: ' + str(sectorsInDisk))
-            print('First MFT Cluster: ' + str(MFTstartCluster))
-            print('First MFT Backup Cluster: ' + str(MFTBstartCluster))
-            print('Bytes per MFT Entry: ' + str(bytesPerMFTEntry))
+                MFTstartByte = MFTstartCluster * sectorsPerCluster * bytesPerSector
+                startMFTEntry = MFTstartByte
 
-            print()
-
-            MFTstartByte = MFTstartCluster * sectorsPerCluster * bytesPerSector
-            startMFTEntry = MFTstartByte
-
-            fp.seek(startMFTEntry, 0)
-            fp.read(1)
-            fp.seek(-1, 1)
-
-            i = 0
-            while True:
-                fp.seek(0x14, 1)
-                offsetFirstAttribute = int.from_bytes(fp.read(2), 'little')
-                fp.seek(-2 - 0x14, 1)
-
-                fp.seek(0x18, 1)
-                sizeMFTEntryUsed = int.from_bytes(fp.read(4), 'little')
-                fp.seek(-4 - 0x18, 1)
-
-                fp.seek(0x2C, 1)
-                fileID = int.from_bytes(fp.read(4), 'little')
-                fp.seek(-4 - 0x2C, 1)
-
-                fileName = ''
-                fileIDParent = ''
-                fileAttributes = []
-                fileDateCreated = ''
-                fileTimeCreated = ''
-                fileSize = 0
-
-                fp.seek(offsetFirstAttribute, 1)
-
-                if sizeMFTEntryUsed > 0:
-                    totalAttributes = offsetFirstAttribute
-                    while True:
-                        typeAttribute = hex(int.from_bytes(fp.read(4), 'little'))
-                        fp.seek(-4, 1)
-
-                        if typeAttribute == "0xffffffff":
-                            fp.seek(-totalAttributes, 1)
-                            break
-
-                        fp.seek(0x04, 1)
-                        sizeAttribute = int.from_bytes(fp.read(4), 'little')
-                        fp.seek(-4 - 0x04, 1)
-
-                        fp.seek(0x10, 1)
-                        sizeContent = int.from_bytes(fp.read(4), 'little')
-                        fp.seek(-4 - 0x10, 1)
-
-                        fp.seek(0x14, 1)
-                        offsetContent = int.from_bytes(fp.read(2), 'little')
-                        fp.seek(-2 - 0x14, 1)
-
-                        # $STANDARD_INFORMATION
-                        if typeAttribute == "0x10":
-                            fp.seek(offsetContent, 1)
-                            timeCreatedNS = int.from_bytes(fp.read(8), 'little')
-                            fp.seek(-8 - offsetContent, 1)
-                            organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS / 1e7) + timedelta(hours = 7)
-                            fileDateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
-                            fileTimeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
-
-                        # $FILE_NAME
-                        elif typeAttribute == "0x30":
-                            fp.seek(offsetContent, 1)
-                            fileIDParent = int.from_bytes(fp.read(6), 'little')
-                            fp.seek(-6, 1)
-
-                            fp.seek(0x38, 1)
-                            stringAttribute = bin(int.from_bytes(fp.read(4), 'little'))[2:]
-                            fp.seek(-4 - 0x38, 1)
-
-                            bitPosition = 0
-                            for bit in reversed(stringAttribute):
-                                if (bit == '1'):
-                                    if (bitPosition == 0): fileAttributes.append('Read-Only')
-                                    elif (bitPosition == 1): fileAttributes.append('Hidden')
-                                    elif (bitPosition == 2): fileAttributes.append('System')
-                                    elif (bitPosition == 5): fileAttributes.append('Archive')
-                                    elif (bitPosition == 28): fileAttributes.append('Directory')
-                                bitPosition += 1
-
-                            fp.seek(0x40, 1)
-                            lengthFileName = int.from_bytes(fp.read(1), 'little')
-                            fp.seek(-1 - 0x40, 1)
-
-                            fp.seek(0x42, 1)
-                            fileName = fp.read(lengthFileName * 2).replace(b'\x00', b'').decode('utf-8')
-                            fp.seek(-(lengthFileName * 2) - 0x42, 1)
-
-                            fp.seek(-offsetContent, 1)
-
-                        # $DATA
-                        elif typeAttribute == "0x80":
-                            fp.seek(offsetContent, 1)
-
-                            fp.seek(0x08, 1)
-                            residentType = int.from_bytes(fp.read(1), 'little')
-                            fp.seek(-1 - 0x08, 1)
-
-                            if (residentType == 0):
-                                fileSize = sizeContent
-                            else:
-                                fp.seek(0x38, 1)
-                                fileSize = int.from_bytes(fp.read(8), 'little')
-                                fp.seek(-8 - 0x38, 1)
-
-                            fp.seek(-offsetContent, 1)
-
-                        totalAttributes += sizeAttribute
-                        fp.seek(sizeAttribute, 1)
-
-                i += 1
-
-                if i < 37:
-                    fp.seek(bytesPerMFTEntry, 1)
-                    fp.read(1)
-                    fp.seek(-1, 1)
-                    continue
-
-                if fileDateCreated == '': break
-
-                fileAttributesString = ''
-                if not fileAttributes: fileAttributesString = 'None'
-                else:
-                    setAttributes = [*set(fileAttributes)]
-                    fileAttributesString = ', '.join(setAttributes)
-
-                fileData = FileNTFS(fileID, fileIDParent, fileName, fileAttributesString, fileDateCreated, fileTimeCreated, fileSize)
-                filesNTFS.append(fileData)
-
-                fp.seek(bytesPerMFTEntry, 1)
+                fp.seek(startMFTEntry, 0)
                 fp.read(1)
                 fp.seek(-1, 1)
 
-            partition_type_entry['text'] = 'NTFS'
-            insert_tree('NTFS')
-
-        # Kiểu FAT32
-        elif (type == "MSDOS"):
-            fp.seek(0x0B, 0)
-            bytesPerSector = int.from_bytes(fp.read(2), 'little')
-            fp.seek(0x0D, 0)
-            sectorsPerCluster = int.from_bytes(fp.read(1), 'little')
-            fp.seek(0x0E, 0)
-            sectorsBeforeFAT = int.from_bytes(fp.read(2), 'little')
-            fp.seek(0x10, 0)
-            numberOfFATs = int.from_bytes(fp.read(1), 'little')
-
-            fp.seek(0x52, 0)
-
-            volumeSize = 0 
-            sectorsPerFAT = 0
-
-            FATtype = fp.read(5).decode("ascii")
-
-            if (FATtype != "FAT32"):
-                print("ERROR: Partition is FAT but it is not FAT32")
-                
-            else:
-                fp.seek(0x20, 0)
-                volumeSize = int.from_bytes(fp.read(4), 'little')
-
-                fp.seek(0x24, 0)
-                sectorsPerFAT = int.from_bytes(fp.read(4), 'little')
-
-                fp.seek(0x2C, 0)
-                RDETIndex = int.from_bytes(fp.read(4), 'little')
-
-                RDETLocation = (sectorsBeforeFAT + numberOfFATs*sectorsPerFAT)*bytesPerSector
-                
-                filesFAT32 = FileFAT32("")
-                filesFAT32 = []
-                
-                list_length = 0
-                fp.seek(RDETLocation, 0)
-                fp.read(1)
-                temp_name = ""
-                index = RDETLocation
-                #Check if there are no more files to read by counting the file
-                cou = 0
-                sentinal = 0
-                father = [-1]
-                isRead = []
-                r_check = False
-                
+                i = 0
                 while True:
-                    fp.seek(index, 0)
-                    isDeleted = fp.read(1)
-                    #If the file is deleted
-                    if (int.from_bytes(isDeleted,'little') == 229):
-                        
-                        index += 32
-                    #If the entry is NULL
-                    elif (int.from_bytes(isDeleted,'little') == 0):
-                        if (cou >= list_length):
-                            break
+                    fp.seek(0x14, 1)
+                    offsetFirstAttribute = int.from_bytes(fp.read(2), 'little')
+                    fp.seek(-2 - 0x14, 1)
 
-                        if (filesFAT32[cou].sentinal):
-                            child_location = (filesFAT32[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
-                            #If the children files havenot been read
-                            
-                            for j in range(len(isRead)):
-                                if (child_location == isRead[j]):
-                                    r_check = True
-                            if (r_check == False):
-                                index = child_location
-                                                
-                            
-                            r_check = False
-                        cou += 1
+                    fp.seek(0x18, 1)
+                    sizeMFTEntryUsed = int.from_bytes(fp.read(4), 'little')
+                    fp.seek(-4 - 0x18, 1)
+
+                    fp.seek(0x2C, 1)
+                    fileID = int.from_bytes(fp.read(4), 'little')
+                    fp.seek(-4 - 0x2C, 1)
+
+                    fileName = ''
+                    fileIDParent = ''
+                    fileAttributes = []
+                    fileDateCreated = ''
+                    fileTimeCreated = ''
+                    fileSize = 0
+
+                    fp.seek(offsetFirstAttribute, 1)
+
+                    if sizeMFTEntryUsed > 0:
+                        totalAttributes = offsetFirstAttribute
+                        while True:
+                            typeAttribute = hex(int.from_bytes(fp.read(4), 'little'))
+                            fp.seek(-4, 1)
+
+                            if typeAttribute == "0xffffffff":
+                                fp.seek(-totalAttributes, 1)
+                                break
+
+                            fp.seek(0x04, 1)
+                            sizeAttribute = int.from_bytes(fp.read(4), 'little')
+                            fp.seek(-4 - 0x04, 1)
+
+                            fp.seek(0x10, 1)
+                            sizeContent = int.from_bytes(fp.read(4), 'little')
+                            fp.seek(-4 - 0x10, 1)
+
+                            fp.seek(0x14, 1)
+                            offsetContent = int.from_bytes(fp.read(2), 'little')
+                            fp.seek(-2 - 0x14, 1)
+
+                            # $STANDARD_INFORMATION
+                            if typeAttribute == "0x10":
+                                fp.seek(offsetContent, 1)
+                                timeCreatedNS = int.from_bytes(fp.read(8), 'little')
+                                fp.seek(-8 - offsetContent, 1)
+                                organizedTime = datetime(1601, 1, 1, 0, 0, 0) + timedelta(seconds = timeCreatedNS / 1e7) + timedelta(hours = 7)
+                                fileDateCreated = (str(organizedTime.day) + "/" + str(organizedTime.month) + "/" + str(organizedTime.year))
+                                fileTimeCreated = (str(organizedTime.hour) + ":" + str(organizedTime.minute) + ":" + str(organizedTime.second) + "." + str(organizedTime.microsecond))
+
+                            # $FILE_NAME
+                            elif typeAttribute == "0x30":
+                                fp.seek(offsetContent, 1)
+                                fileIDParent = int.from_bytes(fp.read(6), 'little')
+                                fp.seek(-6, 1)
+
+                                fp.seek(0x38, 1)
+                                stringAttribute = bin(int.from_bytes(fp.read(4), 'little'))[2:]
+                                fp.seek(-4 - 0x38, 1)
+
+                                bitPosition = 0
+                                for bit in reversed(stringAttribute):
+                                    if (bit == '1'):
+                                        if (bitPosition == 0): fileAttributes.append('Read-Only')
+                                        elif (bitPosition == 1): fileAttributes.append('Hidden')
+                                        elif (bitPosition == 2): fileAttributes.append('System')
+                                        elif (bitPosition == 5): fileAttributes.append('Archive')
+                                        elif (bitPosition == 28): fileAttributes.append('Directory')
+                                    bitPosition += 1
+
+                                fp.seek(0x40, 1)
+                                lengthFileName = int.from_bytes(fp.read(1), 'little')
+                                fp.seek(-1 - 0x40, 1)
+
+                                fp.seek(0x42, 1)
+                                fileName = fp.read(lengthFileName * 2).replace(b'\x00', b'').decode('utf-8')
+                                fp.seek(-(lengthFileName * 2) - 0x42, 1)
+
+                                fp.seek(-offsetContent, 1)
+
+                            # $DATA
+                            elif typeAttribute == "0x80":
+                                fp.seek(offsetContent, 1)
+
+                                fp.seek(0x08, 1)
+                                residentType = int.from_bytes(fp.read(1), 'little')
+                                fp.seek(-1 - 0x08, 1)
+
+                                if (residentType == 0):
+                                    fileSize = sizeContent
+                                else:
+                                    fp.seek(0x38, 1)
+                                    fileSize = int.from_bytes(fp.read(8), 'little')
+                                    fp.seek(-8 - 0x38, 1)
+
+                                fp.seek(-offsetContent, 1)
+
+                            totalAttributes += sizeAttribute
+                            fp.seek(sizeAttribute, 1)
+
+                    i += 1
+
+                    if i < 37:
+                        fp.seek(bytesPerMFTEntry, 1)
+                        fp.read(1)
+                        fp.seek(-1, 1)
+                        continue
+
+                    if fileDateCreated == '': break
+
+                    fileAttributesString = ''
+                    if not fileAttributes: fileAttributesString = 'None'
                     else:
-                        fp.seek(index + 0x0B, 0)
-                        check = fp.read(1)
+                        setAttributes = [*set(fileAttributes)]
+                        fileAttributesString = ', '.join(setAttributes)
 
-                        if (int.from_bytes(check, 'little') == 15):
-                            name = ""
+                    fileData = FileNTFS(fileID, fileIDParent, fileName, fileAttributesString, fileDateCreated, fileTimeCreated, fileSize)
+                    filesNTFS.append(fileData)
 
-                            fp.seek(index + 0x01, 0)
-                            tmp = fp.read(2)
-                            check = tmp[1:]
+                    fp.seek(bytesPerMFTEntry, 1)
+                    fp.read(1)
+                    fp.seek(-1, 1)
+
+                partition_type_entry['text'] = 'NTFS'
+                insert_tree('NTFS')
+
+            # Kiểu FAT32
+            elif (type == "MSDOS"):
+                fp.seek(0x0B, 0)
+                bytesPerSector = int.from_bytes(fp.read(2), 'little')
+                fp.seek(0x0D, 0)
+                sectorsPerCluster = int.from_bytes(fp.read(1), 'little')
+                fp.seek(0x0E, 0)
+                sectorsBeforeFAT = int.from_bytes(fp.read(2), 'little')
+                fp.seek(0x10, 0)
+                numberOfFATs = int.from_bytes(fp.read(1), 'little')
+
+                fp.seek(0x52, 0)
+
+                volumeSize = 0 
+                sectorsPerFAT = 0
+
+                FATtype = fp.read(5).decode("ascii")
+
+                if (FATtype != "FAT32"):
+                    partition_type_entry['text'] = "ERROR: Partition là FAT nhưng không phải FAT32"
+                    
+                else:
+                    fp.seek(0x20, 0)
+                    volumeSize = int.from_bytes(fp.read(4), 'little')
+
+                    fp.seek(0x24, 0)
+                    sectorsPerFAT = int.from_bytes(fp.read(4), 'little')
+
+                    fp.seek(0x2C, 0)
+                    RDETIndex = int.from_bytes(fp.read(4), 'little')
+
+                    RDETLocation = (sectorsBeforeFAT + numberOfFATs*sectorsPerFAT)*bytesPerSector
+                    
+                    filesFAT32 = FileFAT32("")
+                    filesFAT32 = []
+                    
+                    list_length = 0
+                    fp.seek(RDETLocation, 0)
+                    fp.read(1)
+                    temp_name = ""
+                    index = RDETLocation
+                    #Check if there are no more files to read by counting the file
+                    cou = 0
+                    sentinal = 0
+                    father = [-1]
+                    isRead = []
+                    r_check = False
+                    
+                    while True:
+                        fp.seek(index, 0)
+                        isDeleted = fp.read(1)
+                        #If the file is deleted
+                        if (int.from_bytes(isDeleted,'little') == 229):
                             
-                            i = 0
+                            index += 32
+                        #If the entry is NULL
+                        elif (int.from_bytes(isDeleted,'little') == 0):
+                            if (cou >= list_length):
+                                break
 
-                            while (int.from_bytes(check,'little') != 255 and i < 5):
-                                name = name + tmp.decode("utf-16")
-                                tmp = fp.read(2)
-                                check = tmp[1:]
-                                i += 1
-
-                            fp.seek(index + 0x0E, 0)
-                            tmp = fp.read(2)
-                            check = tmp[1:]
-                            i = 0
-                            while (int.from_bytes(check, 'little') != 255 and i < 6):
-                                name = name + tmp.decode("utf-16")
-                                tmp = fp.read(2)
-                                check = tmp[1:]
-                                i += 1
-                            fp.seek(index + 0x1C, 0)
-                            tmp = fp.read(2)
-                            check = tmp[1:]
-                            i = 0
-                            while (int.from_bytes(check, 'little') != 255 and i < 2):
-                                name = name + tmp.decode("utf-16")
-                                tmp = fp.read(2)
-                                check = tmp[1:]
-                                i += 1
-                            #Reverse the file name
-                            temp_name = name + temp_name
+                            if (filesFAT32[cou].sentinal):
+                                child_location = (filesFAT32[cou].beginning_cluster - RDETIndex) * sectorsPerCluster * bytesPerSector + RDETLocation
+                                #If the children files havenot been read
+                                
+                                for j in range(len(isRead)):
+                                    if (child_location == isRead[j]):
+                                        r_check = True
+                                if (r_check == False):
+                                    index = child_location
+                                                    
+                                
+                                r_check = False
+                            cou += 1
                         else:
-                            #Check if there is any extra entries before this main entry
-                            guard = False
-                            if (temp_name == ""):
-                                fp.seek(index, 0)
-                                temp_name = fp.read(8).decode("utf-8")
-                                guard = True
+                            fp.seek(index + 0x0B, 0)
+                            check = fp.read(1)
 
-                            temp_name = temp_name[::-1]
+                            if (int.from_bytes(check, 'little') == 15):
+                                name = ""
 
-                            while (temp_name[0] == " "):
-                                temp_name = temp_name[1:]
-
-                            if (guard == False): temp_name = temp_name[1:]
-
-                            temp_name = temp_name[::-1]
-                            
-                            tmp = temp_name
-                            if (temp_name == "."):
-                                fp.seek(index + 0x08, 0)
-                                temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
-                            
-                            if (temp_name == "."):
-                                fp.seek(index + 32, 0)
-                                temp_name = fp.read(8).decode("utf-8").replace(" ","")
-                                fp.seek(index + 40, 0)
-                                temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
-                                if (temp_name == ".."):
-                                    sentinal += 1
-                                    isRead.append(index)
-                            
-                            if (temp_name != "." and temp_name != ".." and tmp != "." and tmp != ".."):
-                                temp_name = tmp
-                                temp_extension = ""
-
-                                fp.seek(index + 0x08, 0)
-                                temp_extension =  fp.read(3).decode("utf-8").lower()
-
-                                if (guard and temp_extension != "   "):
-                                    temp_name = temp_name + "." + temp_extension
-
-                                filesFAT32.append(FileFAT32(temp_name))
-                                list_length += 1
-
-                                filesFAT32[list_length - 1].location = index
+                                fp.seek(index + 0x01, 0)
+                                tmp = fp.read(2)
+                                check = tmp[1:]
                                 
-                                if (sentinal == len(father)):
-                                    filesFAT32[list_length - 1].father = father[sentinal - 1]
-                                else:
-                                    filesFAT32[list_length - 1].father = father[sentinal]
+                                i = 0
 
-                                filesFAT32[list_length - 1].extension = temp_extension
+                                while (int.from_bytes(check,'little') != 255 and i < 5):
+                                    name = name + tmp.decode("utf-16")
+                                    tmp = fp.read(2)
+                                    check = tmp[1:]
+                                    i += 1
 
-                                fp.seek(index + 0x0B, 0)
-
-                                temp_attribute = bin(int.from_bytes(fp.read(1), 'little'))[2:]
-                                position = 0
-                                
-                                for bit in temp_attribute[::-1]:
-                                    if (bit == "1"):
-                                        if (position == 0 or position == 1 or position == 2 or position == 3 or position == 4 or position == 5): 
-                                            if (position == 4): 
-                                                filesFAT32[list_length - 1].sentinal = True
-                                                father.append(list_length - 1)
-                                            filesFAT32[list_length - 1].attributes += str(position) + " "
-                                    position += 1
-                                
-                                t_attribute = getAttributes(filesFAT32[list_length - 1].attributes)
-
-                                filesFAT32[list_length - 1].attributes = t_attribute
-
-
-                                fp.seek(index + 0x0D, 0)
-
-                                t_time = '{0:b}'.format(int.from_bytes(fp.read(3), 'little'))
-                                
-
-                                for i in range(24 - len(t_time)):
-                                    t_time = "0" + t_time
-                                #Extract hours, minutes, seconds... from binary string
-                                tmp_time = ""
-                                for i in range(5):
-                                    tmp_time += t_time[i]
-
-                                filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
-                                tmp_time =""
-                                for i in range(5, 11):
-                                    tmp_time += t_time[i]
-                                filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
-
-                                tmp_time =""
-                                for i in range(11, 17):
-                                    tmp_time += t_time[i]
-                                filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + "."
-
-                                tmp_time =""
-                                for i in range(17, 24):
-                                    tmp_time += t_time[i]
-                                filesFAT32[list_length - 1].created_time += str(int(tmp_time, 2))
-
-                                #Date
-                                tmp_time = ""
-                                fp.seek(index + 0x10, 0)
-
-                                t_time = '{0:b}'.format(int.from_bytes(fp.read(2), 'little'))
-
-                                for i in range(16 - len(t_time)):
-                                    t_time = "0" + t_time
-                                
-                                for i in range(7):
-                                    tmp_time += t_time[i]
-
-                                filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2) + 1980) + filesFAT32[list_length - 1].created_date
-
-                                tmp_time =""
-                                for i in range(7, 11):
-                                    tmp_time += t_time[i]
-                                if (int(tmp_time, 2) == 0):
-                                    filesFAT32[list_length - 1].created_date = "1/" + filesFAT32[list_length - 1].created_date
-                                else:
-                                    filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + filesFAT32[list_length - 1].created_date
-
-                                tmp_time =""
-                                for i in range(11, 16):
-                                    tmp_time += t_time[i]
-                                if (int(tmp_time, 2) == 0):
-                                    filesFAT32[list_length - 1].created_date = "1/" + filesFAT32[list_length - 1].created_date
-                                else:
-                                    filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + filesFAT32[list_length - 1].created_date
-
-
-                                fp.seek(index + 0x1A, 0)
-
-                                filesFAT32[list_length - 1].beginning_cluster = int.from_bytes(fp.read(2), 'little')
-
+                                fp.seek(index + 0x0E, 0)
+                                tmp = fp.read(2)
+                                check = tmp[1:]
+                                i = 0
+                                while (int.from_bytes(check, 'little') != 255 and i < 6):
+                                    name = name + tmp.decode("utf-16")
+                                    tmp = fp.read(2)
+                                    check = tmp[1:]
+                                    i += 1
                                 fp.seek(index + 0x1C, 0)
-                                filesFAT32[list_length - 1].size = int.from_bytes(fp.read(4), 'little')
+                                tmp = fp.read(2)
+                                check = tmp[1:]
+                                i = 0
+                                while (int.from_bytes(check, 'little') != 255 and i < 2):
+                                    name = name + tmp.decode("utf-16")
+                                    tmp = fp.read(2)
+                                    check = tmp[1:]
+                                    i += 1
+                                #Reverse the file name
+                                temp_name = name + temp_name
+                            else:
+                                #Check if there is any extra entries before this main entry
+                                guard = False
+                                if (temp_name == ""):
+                                    fp.seek(index, 0)
+                                    temp_name = fp.read(8).decode("utf-8")
+                                    guard = True
 
-                            temp_name = ""
-                        
-                        index += 32
-                
-                   
-            partition_type_entry['text'] = 'FAT32'
-            insert_tree('FAT32')
+                                temp_name = temp_name[::-1]
 
-        # Không phải cả 2
-        else: print('ERROR: Partition không phải là FAT32 hay NTFS')
+                                while (temp_name[0] == " "):
+                                    temp_name = temp_name[1:]
+
+                                if (guard == False): temp_name = temp_name[1:]
+
+                                temp_name = temp_name[::-1]
+                                
+                                tmp = temp_name
+                                if (temp_name == "."):
+                                    fp.seek(index + 0x08, 0)
+                                    temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
+                                
+                                if (temp_name == "."):
+                                    fp.seek(index + 32, 0)
+                                    temp_name = fp.read(8).decode("utf-8").replace(" ","")
+                                    fp.seek(index + 40, 0)
+                                    temp_name = temp_name + fp.read(3).decode("utf-8").lower().replace(" ","")
+                                    if (temp_name == ".."):
+                                        sentinal += 1
+                                        isRead.append(index)
+                                
+                                if (temp_name != "." and temp_name != ".." and tmp != "." and tmp != ".."):
+                                    temp_name = tmp
+                                    temp_extension = ""
+
+                                    fp.seek(index + 0x08, 0)
+                                    temp_extension =  fp.read(3).decode("utf-8").lower()
+
+                                    if (guard and temp_extension != "   "):
+                                        temp_name = temp_name + "." + temp_extension
+
+                                    filesFAT32.append(FileFAT32(temp_name))
+                                    list_length += 1
+
+                                    filesFAT32[list_length - 1].location = index
+                                    
+                                    if (sentinal == len(father)):
+                                        filesFAT32[list_length - 1].father = father[sentinal - 1]
+                                    else:
+                                        filesFAT32[list_length - 1].father = father[sentinal]
+
+                                    filesFAT32[list_length - 1].extension = temp_extension
+
+                                    fp.seek(index + 0x0B, 0)
+
+                                    temp_attribute = bin(int.from_bytes(fp.read(1), 'little'))[2:]
+                                    position = 0
+                                    
+                                    for bit in temp_attribute[::-1]:
+                                        if (bit == "1"):
+                                            if (position == 0 or position == 1 or position == 2 or position == 3 or position == 4 or position == 5): 
+                                                if (position == 4): 
+                                                    filesFAT32[list_length - 1].sentinal = True
+                                                    father.append(list_length - 1)
+                                                filesFAT32[list_length - 1].attributes += str(position) + " "
+                                        position += 1
+                                    
+                                    t_attribute = getAttributes(filesFAT32[list_length - 1].attributes)
+
+                                    filesFAT32[list_length - 1].attributes = t_attribute
+
+
+                                    fp.seek(index + 0x0D, 0)
+
+                                    t_time = '{0:b}'.format(int.from_bytes(fp.read(3), 'little'))
+                                    
+
+                                    for i in range(24 - len(t_time)):
+                                        t_time = "0" + t_time
+                                    #Extract hours, minutes, seconds... from binary string
+                                    tmp_time = ""
+                                    for i in range(5):
+                                        tmp_time += t_time[i]
+
+                                    filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
+                                    tmp_time =""
+                                    for i in range(5, 11):
+                                        tmp_time += t_time[i]
+                                    filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + ":"
+
+                                    tmp_time =""
+                                    for i in range(11, 17):
+                                        tmp_time += t_time[i]
+                                    filesFAT32[list_length - 1].created_time = filesFAT32[list_length - 1].created_time + str(int(tmp_time, 2)) + "."
+
+                                    tmp_time =""
+                                    for i in range(17, 24):
+                                        tmp_time += t_time[i]
+                                    filesFAT32[list_length - 1].created_time += str(int(tmp_time, 2))
+
+                                    #Date
+                                    tmp_time = ""
+                                    fp.seek(index + 0x10, 0)
+
+                                    t_time = '{0:b}'.format(int.from_bytes(fp.read(2), 'little'))
+
+                                    for i in range(16 - len(t_time)):
+                                        t_time = "0" + t_time
+                                    
+                                    for i in range(7):
+                                        tmp_time += t_time[i]
+
+                                    filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2) + 1980) + filesFAT32[list_length - 1].created_date
+
+                                    tmp_time =""
+                                    for i in range(7, 11):
+                                        tmp_time += t_time[i]
+                                    if (int(tmp_time, 2) == 0):
+                                        filesFAT32[list_length - 1].created_date = "1/" + filesFAT32[list_length - 1].created_date
+                                    else:
+                                        filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + filesFAT32[list_length - 1].created_date
+
+                                    tmp_time =""
+                                    for i in range(11, 16):
+                                        tmp_time += t_time[i]
+                                    if (int(tmp_time, 2) == 0):
+                                        filesFAT32[list_length - 1].created_date = "1/" + filesFAT32[list_length - 1].created_date
+                                    else:
+                                        filesFAT32[list_length - 1].created_date = str(int(tmp_time, 2)) + "/" + filesFAT32[list_length - 1].created_date
+
+
+                                    fp.seek(index + 0x1A, 0)
+
+                                    filesFAT32[list_length - 1].beginning_cluster = int.from_bytes(fp.read(2), 'little')
+
+                                    fp.seek(index + 0x1C, 0)
+                                    filesFAT32[list_length - 1].size = int.from_bytes(fp.read(4), 'little')
+
+                                temp_name = ""
+                            
+                            index += 32
+                    
+                    
+                partition_type_entry['text'] = 'FAT32'
+                insert_tree('FAT32')
+
+            # Không phải cả 2
+            else: partition_type_entry['text'] = 'ERROR: Partition không phải là FAT32 hay NTFS'
+    except:
+        partition_type_entry['text'] = 'ERROR: Partition không tồn tại'
 
 # Tạo nút tìm partition
 partition_input_button = tk.Button(window, text='Enter', command=open_partition)
