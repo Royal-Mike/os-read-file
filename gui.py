@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 
 # Tính bù 2 của byte
 def twos_comp(val, bits):
-    if (val & (1 << (bits - 1))) != 0:
-        val = val - (1 << bits)
-    return val
+    if (val & (1 << (bits - 1))) != 0: # Nếu bit dấu là 1...
+        val = val - (1 << bits)        # Tính giá trị âm
+    return val                         # Trả về giá trị
 
 # Lấy thuộc tính của file FAT32
 def getAttributes(attributes):
@@ -72,6 +72,7 @@ filesNTFS = []
 window = tk.Tk()
 window.title('Partition Manager')
 window.geometry('500x500')
+window.iconbitmap('icon.ico')
 
 # Tạo cây
 tree = ttk.Treeview(window, height=20)
@@ -94,6 +95,9 @@ time_label.place(x=220, y=150)
 size_label = tk.Label(window, text='Size:')
 size_label.place(x=220, y=180)
 
+path_label = tk.Label(window, text='Path to file:')
+path_label.place(x=220, y=210)
+
 # Tạo label hiện thông tin
 name_entry = tk.Label(window)
 name_entry.place(x=300, y=60)
@@ -109,6 +113,9 @@ time_entry.place(x=300, y=150)
 
 size_entry = tk.Label(window)
 size_entry.place(x=300, y=180)
+
+path_entry = tk.Label(window)
+path_entry.place(x=300, y=210)
 
 # Tạo phần nhập partition
 partition_input_text = tk.Label(window, text='Enter a partition letter:')
@@ -145,15 +152,18 @@ def insert_tree(partition):
             else:
                 tree.insert('', 'end', fileID, text=file.name)
 
+partition_letter = ''
+
 # Mở partition
 def open_partition():
     global filesFAT32
     filesFAT32.clear()
     global filesNTFS
     filesNTFS.clear()
-    partition = partition_input.get()
+    global partition_letter
+    partition_letter = partition_input.get()
     try:
-        with open("\\\\.\\" + partition + ":", "rb") as fp:
+        with open("\\\\.\\" + partition_letter + ":", "rb") as fp:
             # Đọc format
             fp.read(3)
             type = fp.read(5).decode("ascii")
@@ -575,6 +585,7 @@ def open_partition():
             # Không phải cả 2
             else: partition_type_entry['text'] = 'ERROR: Partition không phải là FAT32 hay NTFS'
     except:
+        tree.delete(*tree.get_children())
         partition_type_entry['text'] = 'ERROR: Partition không tồn tại'
 
 # Tạo nút tìm partition
@@ -586,26 +597,67 @@ def display_info(self):
     # Lấy ID file được chọn
     item = tree.selection()[0]
 
+    path_list = []
+
     # Đọc file NTFS
     if (len(filesNTFS) > 0):
         for file in filesNTFS:
             if file.ID == int(item):
+                path_list.append(file.name)
+
+                parent = file.ID_parent
+
+                while True:
+                    if not any(obj.ID == parent for obj in filesNTFS):
+                        break
+                    else:
+                        for fileP in filesNTFS:
+                            if fileP.ID == parent:
+                                path_list.append(fileP.name)
+                                parent = fileP.ID_parent
+
+                path_list.reverse()
+                path_list_string = ''
+                for name in path_list:
+                    path_list_string += name + '\\'
+
                 name_entry['text'] = file.name
                 attribute_entry['text'] = file.attributes
                 date_entry['text'] = file.date_created
                 time_entry['text'] = file.time_created
                 size_entry['text'] = str(file.size) + ' bytes'
+                path_entry['text'] = partition_letter + ':\\' + path_list_string[:-1]
 
     # Đọc file FAT32
     elif (len(filesFAT32) > 0):
         for fileID in range(len(filesFAT32)):
             file = filesFAT32[fileID]
             if fileID == int(item):
+                path_list.append(file.name)
+
+                parent = file.father
+
+                while True:
+                    if not any(index == parent for index in range(len(filesFAT32))):
+                        break
+                    else:
+                        for filePID in range(len(filesFAT32)):
+                            if filePID == parent:
+                                fileP = filesFAT32[filePID]
+                                path_list.append(fileP.name)
+                                parent = fileP.father
+
+                path_list.reverse()
+                path_list_string = ''
+                for name in path_list:
+                    path_list_string += name + '\\'
+
                 name_entry['text'] = file.name
                 attribute_entry['text'] = file.attributes
                 date_entry['text'] = file.created_date
                 time_entry['text'] = file.created_time
                 size_entry['text'] = str(file.size) + ' bytes'
+                path_entry['text'] = partition_letter + ':\\' + path_list_string[:-1]
 
 tree.bind('<<TreeviewSelect>>', display_info)
 window.mainloop()
